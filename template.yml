@@ -12,19 +12,14 @@ Resources:
   Flask:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: handler/index.app
+      Handler: index.lambda_handler
       Runtime: python3.6
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
       Events:
-        TestEvent:
+        Flask:
           Type: Api
           Properties:
-            Path: /test
-            Method: post
-        TwilioSMSMOEvent:
-          Type: Api
-          Properties:
-            Path: /twilio/sms/mo
-            Method: post
+            Path: /{proxy+}
+            Method: ANY

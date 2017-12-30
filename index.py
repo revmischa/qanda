@@ -1,9 +1,10 @@
-from flask_lambda import FlaskLambda
-from flask import request
-import json
+import awsgi
+from flask import request, Flask, jsonify
 
-app = FlaskLambda(__name__)
+app = Flask(__name__)
 
+def lambda_handler(event, context):
+    return awsgi.response(app, event, context)
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
@@ -12,12 +13,12 @@ def test():
         'args': request.args.copy(),
         'json': request.json
     }
-    return (
-        json.dumps(data, indent=4, sort_keys=True),
-        200,
-        {'Content-Type': 'application/json'}
-    )
+    return jsonify(status=200, message="ok")
 
+@app.route('/twilio/sms/mo', methods=['POST'])
+def twilio_sms_mo():
+    """Handle incoming SMS."""
+    return "ok"
 
 if __name__ == '__main__':
     app.run(debug=True)
