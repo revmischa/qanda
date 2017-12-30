@@ -13,7 +13,7 @@ def test():
         'args': request.args.copy(),
         'json': request.json
     }
-    return jsonify(status=200, message="ok")
+    return jsonify(data)
 
 @app.route('/twilio/sms/mo', methods=['POST'])
 def twilio_sms_mo():
