@@ -9,19 +9,6 @@ Parameters:
     Description: CodeStar projectId used to associate new resources to team members
 
 Resources:
-  QADB:
-    Type: AWS::RDS::DBCluster
-    Properties:
-      DatabaseName: linkstat
-      Engine: aurora
-      MasterUsername: !Ref DB_USERNAME
-      MasterUserPassword: !Ref DB_PASSWORD
-  RDSDBInstance1:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      Engine: aurora
-      DBClusterIdentifier:
-        Ref: QADB
   Flask:
     Type: AWS::Serverless::Function
     Properties:
