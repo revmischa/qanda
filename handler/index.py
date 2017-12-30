@@ -1,12 +1,21 @@
-import json
-import datetime
+from flask_lambda import FlaskLambda
+
+app = FlaskLambda(__name__)
 
 
-def handler(event, context):
+@app.route('/test', methods=['GET', 'POST'])
+def test():
     data = {
-        'output': 'Hello World',
-        'timestamp': datetime.datetime.utcnow().isoformat()
+        'form': request.form.copy(),
+        'args': request.args.copy(),
+        'json': request.json
     }
-    return {'statusCode': 200,
-            'body': json.dumps(data),
-            'headers': {'Content-Type': 'application/json'}}
+    return (
+        json.dumps(data, indent=4, sort_keys=True),
+        200,
+        {'Content-Type': 'application/json'}
+    )
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
