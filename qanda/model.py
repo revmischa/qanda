@@ -53,6 +53,6 @@ class Model:
                 continue
 
             # text question
-            sms = twil.send_sms(to=phone, body=f"{user_name} asks:\n{text}\nReply with answer")
+            sms = twil.send_sms(to=phone, body=f"{user_name} asks:\n\"{text}\"\n\nReply with answer")
 
             # self.new_message()
