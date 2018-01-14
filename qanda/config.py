@@ -1,0 +1,4 @@
+import os
+
+TWILIO_API_SID = os.getenv('TWILIO_API_SID')
+TWILIO_API_SECRET = os.getenv('TWILIO_API_SECRET')

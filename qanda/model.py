@@ -2,6 +2,7 @@ import uuid
 from qanda.slack import SlackSlashcommandSchema
 import boto3
 import time
+from qanda import app
 
 class Model:
     def __init__(self):
@@ -9,6 +10,7 @@ class Model:
         self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('message')
         self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table('question')
         self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('answer')
+        self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table('subscriber')
 
     def make_id(self):
         return str(uuid.uuid4())
@@ -41,3 +43,11 @@ class Model:
         self.question.put_item(
             Item=q
         )
+
+        # send out messages
+        subscribers = self.subscriber.scan()  # NB only returns 1MB of results
+        for sub in subscribers['Items']:
+            print(f"sub: {sub}")
+            phone: str = sub['phone']
+            if not phone:
+                continue
