@@ -32,6 +32,7 @@
     "CloudFront-Is-Desktop-Viewer": "true",
     "CloudFront-Is-SmartTV-Viewer": "false",
     "CloudFront-Is-Mobile-Viewer": "false",
+    "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
     "X-Forwarded-For": "127.0.0.1, 127.0.0.2",
     "CloudFront-Viewer-Country": "US",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
