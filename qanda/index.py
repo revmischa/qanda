@@ -4,19 +4,22 @@ sys.path.append(lib_path)
 
 import awsgi
 from flask import request, Flask, jsonify
-import boto3
 import copy
-import time
 from pprint import pprint
 from flask_apispec import use_kwargs, marshal_with
 from marshmallow import fields, Schema
 import logging
 from typing import Dict
 from qanda import model
+import boto3
 from qanda.slack import SlackSlashcommandSchema, SlackSlashcommandResponseSchema
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
+boto3.set_stream_logger(level=logging.WARNING)
+
+boto_session = boto3.session.Session()
+print(f"REGION: {boto_session.region_name}")
 
 app = Flask(__name__)
 
@@ -39,10 +42,10 @@ def test():
 @app.route('/slack/slash_ask', methods=['POST'])
 @use_kwargs(SlackSlashcommandSchema(strict=True))
 @marshal_with(SlackSlashcommandResponseSchema)
-def slack_slash_ask(text: str, user_name: str, channel_id: str, channel_name, **kwargs):
+def slack_slash_ask(**kwargs):
     # save question
-
-    return {'text': text}
+    model.new_question_from_slack(**kwargs)
+    return {'text': "Your question has been asked. Please wait for random humans to answer it."}
 
 
 class AskQuestionSchema(Schema):

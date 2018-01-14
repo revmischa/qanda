@@ -22,7 +22,7 @@ class SlackSlashcommandSchema(Schema):
         """
         p: Dict = request.form
         for f in ['text', 'token', 'team_id', 'team_domain', 'channel_id', 'channel_name', 'user_id', 'user_name', 'command', 'response_url']:
-            in_data[f] = p[f][0]
+            in_data[f] = p[f]
 
 
 class SlackSlashcommandResponseSchema(Schema):

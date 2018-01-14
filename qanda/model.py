@@ -1,6 +1,7 @@
 import uuid
 from qanda.slack import SlackSlashcommandSchema
 import boto3
+import time
 
 class Model:
     def __init__(self):
@@ -10,7 +11,7 @@ class Model:
         self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('answer')
 
     def make_id(self):
-        return uuid.uuid4()
+        return str(uuid.uuid4())
 
     def new_message(self, sid: str, from_: str, to_: str, body: str, question_id: int=None, answer_id: int=None):
         msg: dict = {
@@ -24,7 +25,7 @@ class Model:
             msg['question_id'] = question_id
         if answer_id:
             msg['answer_id'] = answer_id
-        self.message.put_item(
+        res = self.message.put_item(
             Item=msg
         )
 
