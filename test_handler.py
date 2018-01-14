@@ -9,7 +9,7 @@ class HandlerTestCase(unittest.TestCase):
 
     def test_sms_mo(self):
         sms = {
-            'AccountSid': 'AC08bf090ef6d5c3aa6b0b9046a8054a34',
+            'AccountSid': 'AC08bfaf00e12d5c3aa6b0b9046a9054a3',
             'AddOns': '{"status":"successful","message":null,"code":null,"results":{}}',
             'ApiVersion': '2010-04-01',
             'Body': 'Lo siento, número equivocado',
