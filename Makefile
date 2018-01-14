@@ -2,7 +2,7 @@ run:
 	python3 qanda/main.py
 
 test-ask:
-	sam local invoke --env-vars invoke/env_vars.json -e invoke/ask.json Flask
+	sam local invoke --skip-pull-image --env-vars invoke/env_vars.json -e invoke/ask.json Flask
 
 start:
 	sam local start-api --env-vars invoke/env_vars.json Flask

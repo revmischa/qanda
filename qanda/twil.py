@@ -7,3 +7,10 @@ class Twil(twilio.rest.Client):
             sid = app.config.get('TWILIO_API_SID')
             secret = app.config.get('TWILIO_API_SECRET')
         super().__init__(sid, secret)
+
+    def send_sms(self, to: str, body: str):
+        return self.messages.create(
+            to=to,
+            body=body,
+            messaging_service_sid=app.config['TWILIO_MSG_SVC_ID']
+        )

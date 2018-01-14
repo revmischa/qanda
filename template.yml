@@ -12,6 +12,7 @@ Resources:
   Flask:
     Type: AWS::Serverless::Function
     Properties:
+      Timeout: 10
       Handler: qanda/index.lambda_handler
       Runtime: python3.6
       Role:

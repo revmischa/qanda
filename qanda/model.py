@@ -2,7 +2,7 @@ import uuid
 from qanda.slack import SlackSlashcommandSchema
 import boto3
 import time
-from qanda import app
+from qanda import app, twil
 
 class Model:
     def __init__(self):
@@ -10,7 +10,7 @@ class Model:
         self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('message')
         self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table('question')
         self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('answer')
-        self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table('subscriber')
+        self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qa_subscriber')
 
     def make_id(self):
         return str(uuid.uuid4())
@@ -51,3 +51,8 @@ class Model:
             phone: str = sub['phone']
             if not phone:
                 continue
+
+            # text question
+            sms = twil.send_sms(to=phone, body=f"{user_name} asks:\n{text}\nReply with answer")
+
+            # self.new_message()
