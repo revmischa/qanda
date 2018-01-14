@@ -39,6 +39,7 @@ class SlackSlashcommandSchema(Schema):
         https://api.slack.com/custom-integrations/slash-commands#how_do_commands_work
         """
         body: str = request.data  # urlencoded params
+        print(body)
         p: Dict = parse_qs(body)
         for f in ['text', 'token', 'team_id', 'team_domain', 'channel_id', 'channel_name', 'user_id', 'user_name', 'command', 'response_url']:
             in_data[f] = p[f][0]
@@ -99,7 +100,7 @@ class AskQuestionSchema(Schema):
 
 
 @app.route('/slack/slash_ask', methods=['POST'])
-@use_kwargs(SlackSlashcommandSchema)
+@use_kwargs(SlackSlashcommandSchema(strict=True))
 @marshal_with(SlackSlashcommandResponseSchema)
 def question_ask(text: str, user_name: str, channel_id: str, channel_name, **kwargs):
     return {'text': text}
