@@ -9,78 +9,22 @@ import copy
 import time
 from pprint import pprint
 from flask_apispec import use_kwargs, marshal_with
-from marshmallow import fields, Schema, pre_load
-from urllib.parse import parse_qs
+from marshmallow import fields, Schema
 import logging
 from typing import Dict
+from qanda import model
+from qanda.slack import SlackSlashcommandSchema, SlackSlashcommandResponseSchema
+
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 
 
-class SlackSlashcommandSchema(Schema):
-    """Request and response marshalling for Slack slashcommands."""
-    text = fields.Str()
-    token = fields.Str()
-    team_id = fields.Str()
-    team_domain = fields.Str()
-    channel_id = fields.Str()
-    channel_name = fields.Str()
-    user_id = fields.Str()
-    user_name = fields.Str()
-    command = fields.Str()
-    response_url = fields.Str()
-
-    @pre_load
-    def parse_form(self, in_data):
-        """Parse URLencoded slash command params.
-
-        https://api.slack.com/custom-integrations/slash-commands#how_do_commands_work
-        """
-        p: Dict = request.form
-        for f in ['text', 'token', 'team_id', 'team_domain', 'channel_id', 'channel_name', 'user_id', 'user_name', 'command', 'response_url']:
-            in_data[f] = p[f][0]
-
-
-class SlackSlashcommandResponseSchema(Schema):
-    """Marshal a response for returning a slashcommand status.
-
-    https://api.slack.com/custom-integrations/slash-commands#responding_to_a_command
-    """
-    text = fields.Str(required=False)
-    response_type = fields.Str(required=True)
-
-
 def lambda_handler(event, context):
     # pprint(event)
     return awsgi.response(app, event, context)
 
-
-class Model:
-    def __init__(self):
-        dynamodb: boto3.resources.factory.dynamodb.ServiceResource = boto3.resource('dynamodb')
-        self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('message')
-        self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table('question')
-        self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('answer')
-
-    def new_message(self, sid: str, from_: str, to_: str, body: str, question_id: int=None, answer_id: int=None):
-        msg: dict = {
-            'from': from_,
-            'to': to_,
-            'sid': sid,
-            'body': body,
-            'created_ts': int(time.time()),
-        }
-        if question_id:
-            msg['question_id'] = question_id
-        if answer_id:
-            msg['answer_id'] = answer_id
-        self.message.put_item(
-            Item=msg
-        )
-
-model: Model = Model()
 
 @app.route('/test', methods=['GET', 'POST'])
 def test():
@@ -91,17 +35,20 @@ def test():
     }
     return jsonify(data)
 
-class AskQuestionSchema(Schema):
-    question = fields.Str(required=True)
-    name = fields.Str(required=False)
-    channel = fields.Str(required=False)
-
 
 @app.route('/slack/slash_ask', methods=['POST'])
 @use_kwargs(SlackSlashcommandSchema(strict=True))
 @marshal_with(SlackSlashcommandResponseSchema)
-def question_ask(text: str, user_name: str, channel_id: str, channel_name, **kwargs):
+def slack_slash_ask(text: str, user_name: str, channel_id: str, channel_name, **kwargs):
+    # save question
+
     return {'text': text}
+
+
+class AskQuestionSchema(Schema):
+    question = fields.Str(required=True)
+    name = fields.Str(required=False)
+    channel = fields.Str(required=False)
 
 
 @app.route('/twilio/sms/mo', methods=['POST'])
