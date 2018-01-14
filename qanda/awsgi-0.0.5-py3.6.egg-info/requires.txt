@@ -1,4 +1,0 @@
-uvloop
-httptools
-websockets
-werkzeug

@@ -1,5 +1,5 @@
 import os, sys
-lib_path = os.path.abspath(os.path.join(__file__, '..'))
+lib_path = os.path.abspath(os.path.join(__file__, '..', '..', 'vendor'))
 sys.path.append(lib_path)
 
 import awsgi
