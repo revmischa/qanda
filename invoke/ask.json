@@ -1,5 +1,5 @@
 {
-  "body": "text=why am i so lazy&channel=#help&channel_id=C2147483705&channel_name=test&user_id=U2147483697&user_name=Steve&response_url=https://hooks.slack.com/commands/1234/5678&team_id=T0001&team_domain=example",
+  "body": "text=why am i so lazy&channel=#help&channel_id=C2147483705&channel_name=test&user_id=U2147483697&user_name=Steve&response_url=https://hooks.slack.com/commands/1234/5678&team_id=T0001&team_domain=example&token=abcdef&command=/ask",
   "resource": "/{proxy+}",
   "requestContext": {
     "resourceId": "123456",
@@ -47,11 +47,11 @@
     "Accept-Encoding": "gzip, deflate, sdch"
   },
   "pathParameters": {
-    "proxy": "/q/ask"
+    "proxy": "/slack/slash_ask"
   },
   "httpMethod": "POST",
   "stageVariables": {
     "baz": "qux"
   },
-  "path": "/q/ask"
+  "path": "/slack/slash_ask"
 }

@@ -12,6 +12,7 @@ from flask_apispec import use_kwargs, marshal_with
 from marshmallow import fields, Schema, pre_load
 from urllib.parse import parse_qs
 import logging
+from typing import Dict
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -20,7 +21,16 @@ app = Flask(__name__)
 
 class SlackSlashcommandSchema(Schema):
     """Request and response marshalling for Slack slashcommands."""
-    text = fields.Str(load_only=True)
+    text = fields.Str()
+    token = fields.Str()
+    team_id = fields.Str()
+    team_domain = fields.Str()
+    channel_id = fields.Str()
+    channel_name = fields.Str()
+    user_id = fields.Str()
+    user_name = fields.Str()
+    command = fields.Str()
+    response_url = fields.Str()
 
     @pre_load
     def parse_form(self, in_data):
@@ -29,7 +39,10 @@ class SlackSlashcommandSchema(Schema):
         https://api.slack.com/custom-integrations/slash-commands#how_do_commands_work
         """
         body: str = request.data  # urlencoded params
-        in_data['text'] = parse_qs(body)
+        p: Dict = parse_qs(body)
+        for f in ['text', 'token', 'team_id', 'team_domain', 'channel_id', 'channel_name', 'user_id', 'user_name', 'command', 'response_url']:
+            in_data[f] = p[f][0]
+        pprint(in_data)
 
 
 class SlackSlashcommandResponseSchema(Schema):
@@ -88,8 +101,8 @@ class AskQuestionSchema(Schema):
 @app.route('/slack/slash_ask', methods=['POST'])
 @use_kwargs(SlackSlashcommandSchema)
 @marshal_with(SlackSlashcommandResponseSchema)
-def question_ask(question: str, name: str=None, channel: str=None):
-    return {'text': question}
+def question_ask(text: str, user_name: str, channel_id: str, channel_name, **kwargs):
+    return {'text': text}
 
 
 @app.route('/twilio/sms/mo', methods=['POST'])
