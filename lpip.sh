@@ -1,5 +1,7 @@
 #!/bin/bash
 
-pip install -t handler --upgrade $@
-rm -fr handler/*.dist-info
-rm -fr handler/__pycache__
+TARGET_DIR=qanda
+
+pip3.6 install -t $TARGET_DIR --upgrade $@
+rm -fr $TARGET_DIR/*.dist-info
+rm -fr $TARGET_DIR/__pycache__

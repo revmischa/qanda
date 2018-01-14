@@ -12,7 +12,7 @@ Resources:
   Flask:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.lambda_handler
+      Handler: qanda/index.lambda_handler
       Runtime: python3.6
       Role:
         Fn::ImportValue:
