@@ -1,6 +1,6 @@
 .PHONY: run test-ask start bash
 
-REGION=ap-southeast-1
+REGION=eu-central-1
 SAM=AWS_REGION=$(REGION) sam
 
 run:

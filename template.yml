@@ -20,6 +20,7 @@ Resources:
       Environment:
         Variables:
           MESSAGE_TABLE_NAME: !Ref qa_message
+          FOO: bar
       Events:
         FlaskProxy:
           Type: Api
@@ -29,7 +30,7 @@ Resources:
 
   # waiting on: https://github.com/awslabs/serverless-application-model/issues/252
   # TABLES:
-  qa_message:
+  QAMessage:
     Type: AWS::Serverless::SimpleTable
     PrimaryKey:
       Name: id
