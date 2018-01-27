@@ -9,8 +9,7 @@ def boto_setup():
     import boto3
     boto_session = boto3.session.Session()
     print(f"REGION: {boto_session.region_name}")
-    print(f"RETSTESTT: {os.getenv('TEST_REGION')}")
-    boto3.setup_default_session(region_name=os.getenv('TEST_REGION', 'eu-central-1'))
+    # boto3.setup_default_session(region_name=os.getenv('TEST_REGION', 'eu-central-1'))
 
 boto_setup()
 

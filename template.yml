@@ -7,7 +7,6 @@ Parameters:
   ProjectId:
     Type: String
     Description: CodeStar projectId used to associate new resources to team members
-
 Resources:
   Flask:
     Type: AWS::Serverless::Function
@@ -18,9 +17,20 @@ Resources:
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
+      Environment:
+        Variables:
+          MESSAGE_TABLE_NAME: !Ref qa_message
       Events:
-        Flask:
+        FlaskProxy:
           Type: Api
           Properties:
             Path: /{proxy+}
             Method: ANY
+
+  # waiting on: https://github.com/awslabs/serverless-application-model/issues/252
+  # TABLES:
+  qa_message:
+    Type: AWS::Serverless::SimpleTable
+    PrimaryKey:
+      Name: id
+      Type: String

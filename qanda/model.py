@@ -3,11 +3,15 @@ from qanda.slack import SlackSlashcommandSchema
 import boto3
 import time
 from qanda import app, twil
+import os
+
+message_table_name: str = os.getenv('MESSAGE_TABLE_NAME')
+print(f"message_table_name: {message_table_name}")
 
 class Model:
     def __init__(self):
         dynamodb: boto3.resources.factory.dynamodb.ServiceResource = boto3.resource('dynamodb')
-        self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('message')
+        self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qa_message')
         self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table('question')
         self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('answer')
         self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qa_subscriber')

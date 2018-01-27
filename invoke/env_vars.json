@@ -1,5 +1,4 @@
 {
     "Flask": {
-        "TEST_REGION": "eu-central-1"
     }
 }
