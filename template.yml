@@ -19,7 +19,7 @@ Resources:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
       Environment:
         Variables:
-          MESSAGE_TABLE_NAME: !Ref qa_message
+          MESSAGE_TABLE_NAME: !Ref QAMessage
           FOO: bar
       Events:
         FlaskProxy:
