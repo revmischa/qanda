@@ -27,6 +27,17 @@ Resources:
           Properties:
             Path: /{proxy+}
             Method: ANY
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "ssm:GetParameter"
+                - "ssm:GetParameters"
+              Resource:
+                # FIXME: set as stack input
+                - "qanda_*"
+
 
   # waiting on: https://github.com/awslabs/serverless-application-model/issues/252
   # TABLES:
