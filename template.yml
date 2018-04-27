@@ -20,7 +20,6 @@ Resources:
       Environment:
         Variables:
           MESSAGE_TABLE_NAME: !Ref MessageTable
-          FOO: bar
       Events:
         FlaskProxy:
           Type: Api
@@ -64,6 +63,16 @@ Resources:
     Type: AWS::Serverless::SimpleTable
     Properties:
       TableName: 'qanda.answer'
+      PrimaryKey:
+        Name: id
+        Type: String
+      Tags:
+        app: qanda
+
+  SubscriberTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: 'qanda.subscriber'
       PrimaryKey:
         Name: id
         Type: String

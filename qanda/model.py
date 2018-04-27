@@ -16,13 +16,13 @@ class Model:
         dynamodb: boto3.resources.factory.dynamodb.ServiceResource = boto3.resource(
             'dynamodb')
         self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table(
-            'message')
+            'qanda.message')
         self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table(
-            'question')
+            'qanda.question')
         self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table(
-            'answer')
+            'qanda.answer')
         self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table(
-            'qa_subscriber')
+            'qanda.subscriber')
 
     def make_id(self):
         return str(uuid.uuid4())
