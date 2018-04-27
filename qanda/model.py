@@ -2,7 +2,7 @@ import uuid
 from qanda.slack import SlackSlashcommandSchema
 import boto3
 import time
-from qanda import app, twil
+from qanda import app, g_twil
 import os
 from typing import Any
 
@@ -84,7 +84,7 @@ class Model:
                 continue
 
             # text question
-            sms = twil.send_sms(
+            sms = g_twil.send_sms(
                 to=phone,
                 body=f"{user_name} asks:\n\"{text}\"\n\nReply with answer",
             )

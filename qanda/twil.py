@@ -1,5 +1,5 @@
 import twilio.rest
-from qanda import app, model
+from qanda import app
 
 
 class Twil(twilio.rest.Client):
@@ -10,6 +10,7 @@ class Twil(twilio.rest.Client):
         super().__init__(sid, secret)
 
     def send_sms(self, to: str, body: str, **kwargs):
+        from qanda import g_model
         # send
         res = self.messages.create(
             to=to,
@@ -17,11 +18,12 @@ class Twil(twilio.rest.Client):
             messaging_service_sid=app.config['TWILIO_MSG_SVC_ID'])
 
         # record message
-        model.new_message(
+        g_model.new_message(
             to_=to,
+            from_=res.from_,
             body=body,
             **kwargs,
-            id=model.make_id(),
+            id=g_model.make_id(),
             sid=res.sid,
         )
 

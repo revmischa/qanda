@@ -1,5 +1,5 @@
 from qanda.slack import SlackSlashcommandSchema, SlackSlashcommandResponseSchema
-from qanda import model, app
+from qanda import g_model, app
 from flask_apispec import use_kwargs, marshal_with
 from flask import request, redirect, url_for
 import requests
@@ -10,7 +10,7 @@ import requests
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
     # save question
-    model.new_question_from_slack(**kwargs)
+    g_model.new_question_from_slack(**kwargs)
     return {
         'text':
         "Your question has been asked. Please wait for random humans to answer it."
