@@ -39,7 +39,6 @@ Resources:
                 - "qanda_*"
 
 
-  # waiting on: https://github.com/awslabs/serverless-application-model/issues/252
   # TABLES:
   MessageTable:
     Type: AWS::Serverless::SimpleTable
@@ -51,15 +50,22 @@ Resources:
       Tags:
         app: qanda
 
-  # QuestionTable:
-  #   Type: AWS::Serverless::SimpleTable
-  #   TableName: 'qanda.question'
-  #   PrimaryKey:
-  #     Name: id
-  #     Type: String
-  # AnswerTable:
-  #   Type: AWS::Serverless::SimpleTable
-  #   TableName: 'qanda.answer'
-  #   PrimaryKey:
-  #     Name: id
-  #     Type: String
+  QuestionTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: 'qanda.question'
+      PrimaryKey:
+        Name: id
+        Type: String
+      Tags:
+        app: qanda
+
+  AnswerTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: 'qanda.answer'
+      PrimaryKey:
+        Name: id
+        Type: String
+      Tags:
+        app: qanda
