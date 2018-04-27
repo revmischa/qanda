@@ -43,6 +43,7 @@ Resources:
   # TABLES:
   QAMessage:
     Type: AWS::Serverless::SimpleTable
+    TableName: 'qanda.message'
     PrimaryKey:
       Name: id
       Type: String

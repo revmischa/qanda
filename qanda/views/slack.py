@@ -11,7 +11,11 @@ import requests
 def slack_slash_ask(**kwargs):
     # save question
     model.new_question_from_slack(**kwargs)
-    return {'text': "Your question has been asked. Please wait for random humans to answer it."}
+    return {
+        'text':
+        "Your question has been asked. Please wait for random humans to answer it."
+    }
+
 
 @app.route('/slack/install', methods=['GET'])
 def slack_install():
@@ -35,12 +39,14 @@ def slack_oauth():
     print(f"code; {code}")
     # get auth token
     print(f"OAUTH_CLIENT_ID: {app.config.get('SLACK_OAUTH_CLIENT_ID')}")
-    res = requests.get('https://slack.com/api/oauth.access', params={
-        'code': code,
-        'client_id': app.config['SLACK_OAUTH_CLIENT_ID'],
-        'client_secret': app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        'redirect_uri': app.config['SLACK_OAUTH_REDIRECT_URI'],
-    }).json()
+    res = requests.get(
+        'https://slack.com/api/oauth.access',
+        params={
+            'code': code,
+            'client_id': app.config['SLACK_OAUTH_CLIENT_ID'],
+            'client_secret': app.config['SLACK_OAUTH_CLIENT_SECRET'],
+            'redirect_uri': app.config['SLACK_OAUTH_REDIRECT_URI'],
+        }).json()
 
     print(res)
     return redirect(url_for('https://github.com/revmischa/qanda'))
