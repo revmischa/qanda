@@ -43,10 +43,14 @@ Resources:
   # TABLES:
   MessageTable:
     Type: AWS::Serverless::SimpleTable
-    TableName: 'qanda.message'
-    PrimaryKey:
-      Name: id
-      Type: String
+    Properties:
+      TableName: 'qanda.message'
+      PrimaryKey:
+        Name: id
+        Type: String
+      Tags:
+        app: qanda
+
   # QuestionTable:
   #   Type: AWS::Serverless::SimpleTable
   #   TableName: 'qanda.question'
