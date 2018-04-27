@@ -19,7 +19,7 @@ Resources:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
       Environment:
         Variables:
-          MESSAGE_TABLE_NAME: !Ref QAMessage
+          MESSAGE_TABLE_NAME: !Ref MessageTable
           FOO: bar
       Events:
         FlaskProxy:
@@ -41,19 +41,19 @@ Resources:
 
   # waiting on: https://github.com/awslabs/serverless-application-model/issues/252
   # TABLES:
-  Message:
+  MessageTable:
     Type: AWS::Serverless::SimpleTable
     TableName: 'qanda.message'
     PrimaryKey:
       Name: id
       Type: String
-  # Question:
+  # QuestionTable:
   #   Type: AWS::Serverless::SimpleTable
   #   TableName: 'qanda.question'
   #   PrimaryKey:
   #     Name: id
   #     Type: String
-  # Answer:
+  # AnswerTable:
   #   Type: AWS::Serverless::SimpleTable
   #   TableName: 'qanda.answer'
   #   PrimaryKey:

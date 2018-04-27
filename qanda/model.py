@@ -72,7 +72,7 @@ class Model:
             },
             body=text,
             question_id=q['id'],
-            id=self.make_id(),
+            sid=self.make_id(),
         )
 
         # send out messages
@@ -86,6 +86,7 @@ class Model:
             # text question
             sms = twil.send_sms(
                 to=phone,
-                body=f"{user_name} asks:\n\"{text}\"\n\nReply with answer")
+                body=f"{user_name} asks:\n\"{text}\"\n\nReply with answer",
+            )
 
             # self.new_message()
