@@ -48,6 +48,9 @@ Resources:
         Type: String
       Tags:
         app: qanda
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
 
   QuestionTable:
     Type: AWS::Serverless::SimpleTable
@@ -58,6 +61,9 @@ Resources:
         Type: String
       Tags:
         app: qanda
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
 
   AnswerTable:
     Type: AWS::Serverless::SimpleTable
@@ -68,6 +74,9 @@ Resources:
         Type: String
       Tags:
         app: qanda
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
 
   SubscriberTable:
     Type: AWS::Serverless::SimpleTable
@@ -78,3 +87,6 @@ Resources:
         Type: String
       Tags:
         app: qanda
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1

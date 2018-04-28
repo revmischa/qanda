@@ -7,7 +7,7 @@ def twilio_sms_mo():
     """Handle incoming SMS."""
     vals: dict = request.form
     sid: str = vals['MessageSid']
-    g_model.new_message(
+    g_model.new_answer_from_sms(
         body=vals['Body'],
         sid=sid,
         from_=vals['From'],
