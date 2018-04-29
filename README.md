@@ -1,43 +1,27 @@
-Welcome to the AWS CodeStar sample web service
-==============================================
+# Q and A
+======
+## Ask a question; answer a question.
 
-This sample code helps get you started with a simple Python web service using
-AWS Lambda and Amazon API Gateway.
+<a href="https://slack.com/oauth/authorize?client_id=303250292951.354646358592&scope=commands,identity.team,channels:history,chat:write,im:write,reactions:write,im:history"><img alt="Add to Slack" height="40" width="139" src="https://platform.slack-edge.com/img/add_to_slack.png" srcset="https://platform.slack-edge.com/img/add_to_slack.png 1x, https://platform.slack-edge.com/img/add_to_slack@2x.png 2x" /></a>
 
-What's Here
------------
+This is an app for Slack and SMS that lets anyone ask a question or answer a question.
+You can ask a question anonymously or in a channel.
+All answers are anonymous.
 
-This sample includes:
-
-* README.md - this file
-* buildspec.yml - this file is used by AWS CodeBuild to package your
-  application for deployment to AWS Lambda
-* index.py - this file contains the sample Python code for the web service
-* template.yml - this file contains the Serverless Application Model (SAM) used
-  by AWS Cloudformation to deploy your application to AWS Lambda and Amazon API
-  Gateway.
+### How it works:
+Once you've [added the app](https://slack.com/oauth/authorize?client_id=303250292951.354646358592&scope=commands,identity.team,channels:history,chat:write,im:write,reactions:write,im:history) to Slack, you can either send a private message to @QAndA or type `/ask` to ask a public question in the current channel.
 
 
-What Do I Do Next?
-------------------
+#### Private questions:
+![ask1](screenshots/a1.png)
+![answer](screenshots/r1.png)
+![ask2](screenshots/a2.png)
 
-If you have checked out a local copy of your repository you can start making changes
-to the sample code.  We suggest making a small change to index.py first, so you can
-see how changes pushed to your project's repository are automatically picked up by your
-project pipeline and deployed to AWS Lambda and Amazon API Gateway. (You can watch the pipeline
-progress on your AWS CodeStar project dashboard.)Once you've seen how that works,
-start developing your own code, and have fun!
 
-Learn more about Serverless Application Model (SAM) and how it works here:
-https://github.com/awslabs/serverless-application-model/blob/master/HOWTO.md
+#### Public questions:
+![in-channel](screenshots/c1.png)
 
-AWS Lambda Developer Guide:
-http://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html
 
-Learn more about AWS CodeStar by reading the user guide, and post questions and
-comments about AWS CodeStar on our forum.
-
-AWS CodeStar User Guide:
-http://docs.aws.amazon.com/codestar/latest/userguide/welcome.html
-
-AWS CodeStar Forum: https://forums.aws.amazon.com/forum.jspa?forumID=248
+### About
+This bot is open-source and is completely serverless.
+It is built with AWS Lambda, DynamoDB, Flask, Python 3, Twilio, and Slack. PRs welcome!
