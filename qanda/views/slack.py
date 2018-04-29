@@ -31,7 +31,7 @@ def slack_install():
         dict(
             client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
             scope='commands identity.team channels:history chat:write im:write reactions:write',
-            redirect_uri=get_oauth_redirect_url(),
+            redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
             _external=True,
         ))
     return redirect(url)
@@ -54,7 +54,7 @@ def slack_oauth():
         "oauth.access",
         client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
         client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        redirect_uri=get_oauth_redirect_url(),
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
         code=code,
     )
     if 'error' in auth_response:
