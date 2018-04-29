@@ -92,6 +92,7 @@ class Notify:
                     fallback=f""":man-raising-hand: New question "{question_body}"\nTo reply, type: *reply ...*""",
                     title=f"""New Question Asked:""",
                     text=f"{question_body}",
+                    markdown=False,
                 ),
                 dict(
                     text=f":face_with_monocle: Want to reply? Type: *reply .....*",
@@ -123,5 +124,13 @@ class Notify:
         client.api_call(
             "chat.postMessage",
             channel=channel_id,
-            text=f"""New answer for question "{question_body}": {answer_body}""",
+            attachments=[
+                dict(
+                    color="#3646af",
+                    fallback=f"""New answer for question "{question_body}": {answer_body}""",
+                    title=f"""Answer To "{question_body}":""",
+                    text=f"{answer_body}",
+                    markdown=False,
+                ),
+            ],
         )
