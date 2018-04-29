@@ -120,7 +120,7 @@ class Model:
     def _find_question_message_to(self, to, filter_expression=None) -> Optional[Dict]:
         """Look up most recent message that was sent to `to`."""
         if not filter_expression:
-            filter_expression = Attr('question_id').exists()
+            filter_expression = Attr('question_id').exists() & Attr('is_question_notification').exists()
         res = self.message.query(
             IndexName='to-created-index',  # FIXME: put in CF
             ScanIndexForward=False,  # give us most recent first
@@ -146,7 +146,9 @@ class Model:
             is_answer=True,
         )
         # look for a question that was sent to the sender
-        filter_expression = Attr('question_id').exists() & Attr('slack_team_id').eq(team_id)
+        filter_expression = Attr('question_id').exists() & \
+            Attr('is_question_notification').exists() & \
+            Attr('slack_team_id').eq(team_id)
         question_msg = self._find_question_message_to(to=channel_id, filter_expression=filter_expression)
         if not question_msg:
             log.warning(f"got slack response to question but no question found for {channel_id}")

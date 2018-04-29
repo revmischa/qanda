@@ -93,7 +93,7 @@ class SlackApp:
         # handle event
         if type == 'message':
             # PM
-            self.handle_im_subscribe(evt)
+            self.handle_message_event(evt)
             return True
 
         # unknown event
@@ -102,10 +102,14 @@ class SlackApp:
         log.error(f"unknown event {type}")
         return False
 
-    def handle_im_subscribe(self, evt):
+    def handle_message_event(self, evt):
         from qanda import g_model
 
         client = self.get_client()
+        # some message format we don't know how to handle
+        if 'text' not in evt:
+            return False
+
         body = evt['text']
         channel_id = evt['channel']
         user_id = evt['user']

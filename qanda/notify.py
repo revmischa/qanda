@@ -55,6 +55,7 @@ class Notify:
             question_id=question['id'],
             to=phone,
             body=f"Question:\n\"{question_body}\"\n\nReply w/ answer",
+            is_question_notification=True,
         )
         return True
 
@@ -77,7 +78,7 @@ class Notify:
             slack_channel_id=channel_id,
             slack_team_id=team_id,
             question_id=question['id'],
-            is_question=True,
+            is_question_notification=True,
         )
 
         client = SlackApp.get_client_for_team_id(team_id)
