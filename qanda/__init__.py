@@ -24,10 +24,15 @@ app.config.from_pyfile('config.py', silent=False)
 app.config.from_pyfile('local.cfg', silent=True)
 
 from qanda.twil import Twil
-g_twil: Twil = Twil()
+g_twil = Twil()
+
+from qanda.notify import Notify
+g_notify = Notify()
 
 from qanda.model import Model
-g_model: Model = Model()
+g_model = Model()
 
 import qanda.views.slack
 import qanda.views.twilio
+
+__all__ = ('g_twil', 'g_notify', 'g_model', 'app')

@@ -1,5 +1,5 @@
 {
-  "body": "text=why am i so lazy&channel=#help&channel_id=C2147483705&channel_name=test&user_id=U2147483697&user_name=Steve&response_url=https://hooks.slack.com/commands/1234/5678&team_id=T0001&team_domain=example&token=abcdef&command=/ask",
+  "body": "text=why am i so lazy&team_id=T0001&team_domain=enet&channel=#help&channel_id=C2147483705&channel_name=test&user_id=U2147483697&user_name=Steve&response_url=https://hooks.slack.com/commands/1234/5678&team_id=T0001&team_domain=example&token=abcdef&command=/ask",
   "resource": "/{proxy+}",
   "requestContext": {
     "resourceId": "123456",

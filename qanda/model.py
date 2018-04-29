@@ -1,21 +1,24 @@
 import uuid
 # from qanda.slack import SlackSlashcommandSchema
-import boto3
 import time
-from qanda import g_twil
+from qanda import g_twil, g_notify
 from typing import Any
 from boto3.dynamodb.conditions import Key, Attr
+import logging
+import qanda.table
+
+log = logging.getLogger(__name__)
 
 
 class Model:
     def __init__(self):
-        dynamodb: boto3.resources.factory.dynamodb.ServiceResource = boto3.resource('dynamodb')
-        self.message: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qanda.message')
-        self.question: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qanda.question')
-        self.answer: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qanda.answer')
-        self.subscriber: boto3.resources.factory.dynamodb.Table = dynamodb.Table('qanda.subscriber')
+        # conveniences
+        self.message = qanda.table.message
+        self.question = qanda.table.question
+        self.answer = qanda.table.answer
+        self.subscriber = qanda.table.subscriber
 
-    def make_id(self):
+    def make_id(self) -> str:
         return str(uuid.uuid4())
 
     def id_and_created(self):
@@ -29,8 +32,8 @@ class Model:
                     to_: Any,
                     body: str,
                     sid: str = None,
-                    question_id: int = None,
-                    answer_id: int = None,
+                    question_id: str = None,
+                    answer_id: str = None,
                     **kwargs):
         msg = {
             'from': from_,
@@ -53,46 +56,40 @@ class Model:
             **self.id_and_created(),
             'body': answer_msg['body'],
             'message_id': answer_msg['id'],
+            'question_id': question['id'],
         }
         self.answer.put_item(Item=answer)
         return answer
 
-    def new_question_from_slack(self, text: str, user_name: str,
-                                channel_id: str, channel_name, **kwargs):
+    def new_question_from_slack(self, text: str, channel_id: str, channel_name,
+                                user_id: str, team_id: str, team_domain: str,
+                                user_name: str=None,
+                                **kwargs):
+
+        slack_params = dict(
+            slack_channel_name=channel_name,
+            slack_channel_id=channel_id,
+            slack_team_id=team_id,
+            slack_team_domain=team_domain,
+            slack_user_name=user_name,  # deprecated
+            source='slack',
+        )
         # record question
-        q = {
-            'body': text,
-            'user_name': user_name,
-            'channel_id': channel_id,
-            'channel_name': channel_name,
+        q = dict(
+            body=text,
+            **slack_params,
             **self.id_and_created(),
-        }
+        )
         self.question.put_item(Item=q)
 
         # record the message
         self.new_message(
-            from_=user_name,
+            from_=user_id,
             to_=channel_id,
-            source='slack',
-            slack_channel_name=channel_name,
-            slack_channel_id=channel_id,
-            body=text,
             question_id=q['id'],
+            **slack_params,
         )
 
-        # send out messages to subscribers
-        subscribers = self.subscriber.scan()  # NB only returns 1MB of results
-        for sub in subscribers['Items']:
-            phone: str = sub['phone']
-            if not phone:
-                continue
-
-            # text question
-            g_twil.send_sms(
-                question_id=q['id'],
-                to=phone,
-                body=f"{user_name} asks:\n\"{text}\"\n\nReply w/ answer",
-            )
 
     def new_answer_from_sms(self, body: str, sid: str, from_: str, to_: str):
         answer_msg = self.new_message(
@@ -104,11 +101,10 @@ class Model:
 
         # look for a question that was sent to the sender
         sent_messages_res = self.message.query(
-            IndexName='to-created_ts-index',  # FIXME: put in CF
+            IndexName='to-created-index',  # FIXME: put in CF
             ScanIndexForward=False,  # give us most recent first
             KeyConditionExpression=Key('to').eq(from_),  # find message sent to this answerer
             FilterExpression=Attr('question_id').exists(),  # should have been for a question
-            Limit=1,  # just one is fine
         )
 
         count = sent_messages_res['Count']
@@ -117,6 +113,7 @@ class Model:
         if count == 0:
             # we got a SMS but no question has ever been sent to this number...
             # must not be an answer?
+            log.warning(f"got SMS but no questions have been asked. from: {from_}. body: {body}")
             return  # disabled for testing
             g_twil.send_sms(
                 to=from_,
@@ -124,20 +121,17 @@ class Model:
             )
             return
 
-        # should only have one result
-        assert count == 1
+        # get first result
         question_msg = sent_messages[0]
 
         # look up question that was asked
         question_id = question_msg['question_id']
         assert question_id
-        question = self.question.get_item(Key={'id': question_id})
+        question = self.question.get_item(Key={'id': question_id})['Item']
         assert question
 
         # record the answer
         answer = self.new_answer(question, answer_msg)
-        import pprint
-        pprint.pprint(answer)
 
         # notify asker of the answer
-        ...
+        g_notify.notify_of_answer(answer)

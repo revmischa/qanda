@@ -20,10 +20,9 @@ class Twil(twilio.rest.Client):
         # record message
         g_model.new_message(
             to_=to,
-            from_=res.from_,
+            from_=res.from_,  # fixme
             body=body,
             **kwargs,
-            id=g_model.make_id(),
             sid=res.sid,
         )
 

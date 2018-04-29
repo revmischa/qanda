@@ -90,3 +90,16 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
+
+  AuthTokenTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: 'qanda.auth_token'
+      PrimaryKey:
+        Name: id
+        Type: String
+      Tags:
+        app: qanda
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
