@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 vendor_path = os.path.abspath(os.path.join(__file__, '..', '..', 'vendor'))
 lib_path = os.path.abspath(os.path.join(__file__, '..', '..'))
 sys.path.append(lib_path)

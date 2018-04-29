@@ -60,6 +60,16 @@ def slack_event():
     log.error(f"unknown event {type}")
     return "not ok", 500
 
+def get_app_userid(team_id):
+    """Find OUR (as in, the bot) userid in this team."""
+    auth_token = get_auth_token(team_id)
+    if not auth_token:
+        return None
+    return auth_token['app_user_id']
+
+def get_auth_token(team_id):
+    return qanda.table.auth_token.get_item(Key={'id': team_id})['Item']
+
 # move somewhere else
 def handle_im_subscribe(team_id, evt):
     client = g_notify.get_slack_bot_client_for_team(team_id)
@@ -84,6 +94,18 @@ def handle_im_subscribe(team_id, evt):
             channel=channel_id,
             **kwargs,
         )
+
+    is_pm = channel_id.startswith('D')  # D for direct message, C for channel
+    if not is_pm:
+        # in-channel msg; eh just bail
+        save_message()
+        return
+
+    # now look up what OUR user id is
+    app_userid = get_app_userid(team_id)
+    if user_id == app_userid:
+        # we're getting notified of OUR message that we sent. thanks slack. :/
+        return
 
     bodylc = body.lower()
 
@@ -110,7 +132,7 @@ def handle_im_subscribe(team_id, evt):
         # unknown
         save_message()
         log.info(f"got unfamiliar IM command: {body}")
-        # reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
+        reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)
