@@ -109,8 +109,8 @@ class SlackApp:
         # handle event
         if type == 'message':
             # handle message subtype (legacy events)
-            if 'subtype' in evt_callback:
-                subtype = evt_callback['subtype']
+            if 'subtype' in evt:
+                subtype = evt['subtype']
                 if subtype == 'bot_message':
                     # slack is notifying us of a message we just sent. thanks.
                     return True

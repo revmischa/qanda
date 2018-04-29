@@ -9,6 +9,8 @@ All answers are anonymous.
 ## How it works:
 Once you've [added the app](https://slack.com/oauth/authorize?client_id=303250292951.355565480789&scope=commands,bot,channels:history,chat:write:bot) to Slack, you can either send a private message to @QAndA or type `/ask` to ask a public question in the current channel.
 
+To answer questions people ask, message the bot "subscribe".
+
 
 # Private questions:
 ![ask1](screenshots/a1.png)
