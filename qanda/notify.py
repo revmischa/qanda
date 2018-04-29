@@ -115,13 +115,6 @@ class Notify:
         if self._is_poster(answer, slack_channel_id=channel_id, slack_team_id=team_id):
             return
 
-        # these should all be set
-        assert team_id
-        assert user_id
-        assert question_body
-        assert channel_id
-        assert answer_body
-
         client = SlackApp.get_client_for_team_id(team_id)
         if not client:
             return
