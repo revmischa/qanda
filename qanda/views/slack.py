@@ -46,6 +46,7 @@ def slack_event():
     # useful fields
     evt = evt_callback['event']
     team_id = evt_callback['team_id']
+    type = evt['type']
 
     # handle event
     if type == 'message.im':
