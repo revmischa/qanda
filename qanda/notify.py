@@ -128,7 +128,7 @@ class Notify:
                 dict(
                     color="#3646af",
                     fallback=f"""New answer for question "{question_body}": {answer_body}""",
-                    title=f"""Answer To "{question_body}":""",
+                    title=f"""Answer to "{question_body}":""",
                     text=f"{answer_body}",
                     markdown=False,
                 ),
