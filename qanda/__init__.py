@@ -4,6 +4,9 @@ lib_path = os.path.abspath(os.path.join(__file__, '..', '..'))
 sys.path.append(lib_path)
 sys.path.append(vendor_path)
 from flask import Flask
+import logging
+
+log = logging.getLogger(__name__)
 
 
 def boto_setup():
@@ -13,7 +16,11 @@ def boto_setup():
     # boto3.setup_default_session(region_name=os.getenv('TEST_REGION', 'eu-central-1'))
 
 
+# init AWS
 boto_setup()
+
+# init logging
+logging.basicConfig(level=logging.DEBUG)
 
 ##############
 
