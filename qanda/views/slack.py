@@ -21,10 +21,16 @@ def slack_slash_ask(**kwargs):
         "Your question has been asked. Please wait for random humans to answer it."
     }
 
-@app.route('/slack/verify', methods=['POST'])
-def slack_url_verification():
-    v = request.get_json()
-    return v['challenge']
+@app.route('/slack/event', methods=['POST'])
+def slack_event():
+    evt = request.get_json()
+    type = evt['type']
+    if type == 'url_verification':
+        return evt['challenge']
+
+    import pprint
+    pprint.pprint(evt)
+    log.error(f"unknown event {type}")
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)
