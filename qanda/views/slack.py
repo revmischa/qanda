@@ -49,7 +49,7 @@ def slack_event():
     type = evt['type']
 
     # handle event
-    if type == 'message.im':
+    if type == 'message':
         # PM
         handle_im_subscribe(team_id, evt)
         return "ok"
