@@ -10,7 +10,7 @@ class Notify:
     def notify_of_question(self, question):
         # send out messages to subscribers
         # FIXME: paginate
-        subscribers = self.subscriber.scan()  # NB only returns 1MB of results
+        subscribers = qanda.table.subscriber.scan()  # NB only returns 1MB of results
         for sub in subscribers['Items']:
             if 'phone' in sub:
                 self.notify_sms_of_question(sub, question)

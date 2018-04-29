@@ -104,7 +104,8 @@ class Model:
             question_id=q['id'],
             **slack_params,
         )
-
+        # notify
+        g_notify.notify_of_question(q)
 
     def new_answer_from_sms(self, body: str, sid: str, from_: str, to_: str):
         answer_msg = self.new_message(
