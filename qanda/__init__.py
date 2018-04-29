@@ -12,16 +12,19 @@ log = logging.getLogger(__name__)
 
 def boto_setup():
     import boto3
-    boto_session = boto3.session.Session()
-    print(f"REGION: {boto_session.region_name}")
+    # boto_session = boto3.session.Session()
+    # print(f"REGION: {boto_session.region_name}")
     # boto3.setup_default_session(region_name=os.getenv('TEST_REGION', 'eu-central-1'))
+    boto3.set_stream_logger('botocore', level=logging.INFO)
 
 
 # init AWS
 boto_setup()
 
 # init logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+logging.getLogger('botocore.credentials').setLevel(logging.WARNING)
 
 ##############
 
