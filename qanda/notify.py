@@ -35,9 +35,10 @@ class Notify:
 
     def get_slack_bot_client(self, auth_token) -> SlackClient:
         # make a client with the bot token
-        if 'bot_auth_token' not in auth_token:
-            raise Exception(f"missing bot_auth_token in {auth_token}")
-        bot_token = auth_token['bot_auth_token']
+        # in the new slack apps - there is no bot token. it's just access_token and the app is a bot.
+        if 'access_token' not in auth_token:
+            raise Exception(f"missing access_token in {auth_token}")
+        bot_token = auth_token['access_token']
         sc = SlackClient(bot_token)
         return sc
 

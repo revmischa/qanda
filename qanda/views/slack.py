@@ -5,6 +5,9 @@ from flask import request, redirect, url_for
 import requests
 from slackclient import SlackClient
 from urllib.parse import urlencode
+import logging
+
+log = logging.getLogger(__name__)
 
 
 @app.route('/slack/slash_ask', methods=['POST'])
@@ -53,8 +56,12 @@ def slack_oauth():
         "oauth.access",
         client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
         client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URI'],
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
         code=code,
     )
+    if 'error' in auth_response:
+        log.error(f"got error in auth response: {auth_response['error']}")
+        return
+
     g_model.save_slack_tokens(auth_response)
-    return redirect(url_for('https://github.com/revmischa/qanda'))
+    return redirect('https://github.com/revmischa/qanda')

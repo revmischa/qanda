@@ -33,6 +33,7 @@ class Model:
         print(token_res)
         self.auth_token.put_item(Item=dict(
             **token_res,
+            **self.id_and_created(),
         ))
 
     def new_message(self,
