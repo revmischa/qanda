@@ -62,7 +62,7 @@ def slack_event():
 
 # move somewhere else
 def handle_im_subscribe(team_id, evt):
-    client = g_notify.get_slack_bot_client()
+    client = g_notify.get_slack_bot_client_for_team(team_id)
     body = evt['text']
     channel_id = evt['channel']
     user_id = evt['user']
@@ -71,6 +71,8 @@ def handle_im_subscribe(team_id, evt):
     def save_message():
         g_model.new_message(
             from_=user_id,
+            to_='event_hook',
+            body=body,
             slack_channel_id=channel_id,
             slack_team_id=team_id,
             source='slack',
@@ -83,7 +85,7 @@ def handle_im_subscribe(team_id, evt):
             **kwargs,
         )
 
-    bodylc = body.lowercase()
+    bodylc = body.lower()
 
     if bodylc.startswith('subscribe'):
         # subscribe user
@@ -107,7 +109,8 @@ def handle_im_subscribe(team_id, evt):
     else:
         # unknown
         save_message()
-        reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
+        log.info(f"got unfamiliar IM command: {body}")
+        # reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)
