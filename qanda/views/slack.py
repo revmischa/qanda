@@ -29,38 +29,48 @@ def slack_slash_ask(**kwargs):
 
 @app.route('/slack/event', methods=['POST'])
 def slack_event():
-    evt = request.get_json()
-    token = evt['token']
+    evt_callback = request.get_json()
+
+    # check it's really slack and they have our secret
+    token = evt_callback['token']
     if token != app.config['SLACK_VERIFICATION_TOKEN']:
         log.error(f"got invalid SLACK_VERIFICATION_TOKEN: {token}")
         return "invalid token", 400
 
-    type = evt['type']
+    type = evt_callback['type']
+
+    # subscribe challenge
     if type == 'url_verification':
-        return evt['challenge']
-    elif type == 'message.im':
+        return evt_callback['challenge']
+
+    # useful fields
+    evt = evt_callback['event']
+    team_id = evt_callback['team_id']
+    user_id = evt_callback['user']
+
+    # handle event
+    if type == 'message.im':
         # PM
-        handle_im_subscribe(evt)
+        handle_im_subscribe(team_id, evt)
         return "ok"
 
+    # unknown event
     import pprint
     pprint.pprint(evt)
     log.error(f"unknown event {type}")
     return "not ok", 500
 
-def handle_im_subscribe(evt):
+# move somewhere else
+def handle_im_subscribe(team_id, evt):
     client = g_notify.get_slack_bot_client()
     body = evt['text']
-    channel_id = evt['event']['channel']
-    user_id = evt['user']
-    team_id = evt['team_id']
+    channel_id = evt['channel']
     if body.lowercase().startswith('subscribe'):
         # subscribe user
         sub_id = f"{team_id}|{channel_id}"
         qanda.table.subscriber.put_item(Item=dict(
             id=sub_id,
             team_id=team_id,
-            user_id=user_id,
             channel_id=channel_id,
             body=body,
         ))
@@ -73,7 +83,7 @@ def handle_im_subscribe(evt):
         client.api_call(
             "chat.postMessage",
             channel=channel_id,
-            text=f"So sorry.. not sure what you're asking 🧐\nCommands are: {USAGE}",
+            text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}",
         )
 
 def get_oauth_redirect_url():
