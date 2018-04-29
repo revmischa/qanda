@@ -88,11 +88,13 @@ class SlackApp:
         if not auth_token:
             return None
         if app.config['WORKSPACE_PERMISSIONS']:
+            # new
+            return auth_token['app_user_id']
+        else:
+            # legacy
             if 'bot' not in auth_token:
                 raise Exception(f"missing bot access_token in {auth_token}")
             return auth_token['bot']['bot_user_id']
-        else:
-            return auth_token['app_user_id']
 
     def get_auth_token(self) -> Optional[Dict]:
         return qanda.table.auth_token.get_item(Key={
