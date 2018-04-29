@@ -29,9 +29,9 @@ def slack_event():
 
     # check it's really slack and they have our secret
     token = evt_callback['token']
-    if token != app.config['SLACK_VERIFICATION_TOKEN']:
-        log.error(f"got invalid SLACK_VERIFICATION_TOKEN: {token}")
-        return "invalid token", 400
+    # if token != app.config['SLACK_VERIFICATION_TOKEN']:
+    #     log.error(f"got invalid SLACK_VERIFICATION_TOKEN: {token}")
+    #     return "invalid token", 400
 
     type = evt_callback['type']
 

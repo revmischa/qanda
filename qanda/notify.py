@@ -108,7 +108,6 @@ class Notify:
         """Post answer to asker in channel or PM."""
         channel_id = question['slack_channel_id']
         team_id = question['slack_team_id']
-        user_id = question['slack_user_id']
         question_body = question['body']
         answer_body = answer['body']
 
