@@ -85,6 +85,7 @@ class Model:
             slack_team_id=team_id,
             slack_team_domain=team_domain,
             slack_user_name=user_name,  # deprecated
+            slack_user_id=user_id,
             source='slack',
         )
         # record question
