@@ -56,8 +56,13 @@ def get_oauth_redirect_url():
 @app.route('/slack/install', methods=['GET'])
 def slack_install():
     """Begin OAuth flow for install."""
-    chat_write = 'chat:write:user'  # old
-    # chat_write = 'chat:write'  # new
+
+    # chat:write:user got changed to chat:write
+    if app.config['WORKSPACE_PERMISSIONS']:
+        chat_write = 'chat:write'  # new
+    else:
+        chat_write = 'chat:write:user'  # old
+
     url = 'https://slack.com/oauth/authorize?' + urlencode(
         dict(
             client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
