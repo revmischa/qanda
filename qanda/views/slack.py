@@ -46,7 +46,6 @@ def slack_event():
     # useful fields
     evt = evt_callback['event']
     team_id = evt_callback['team_id']
-    user_id = evt_callback['user']
 
     # handle event
     if type == 'message.im':
@@ -65,6 +64,7 @@ def handle_im_subscribe(team_id, evt):
     client = g_notify.get_slack_bot_client()
     body = evt['text']
     channel_id = evt['channel']
+    user_id = evt['user']
     if body.lowercase().startswith('subscribe'):
         # subscribe user
         sub_id = f"{team_id}|{channel_id}"
@@ -72,6 +72,7 @@ def handle_im_subscribe(team_id, evt):
             id=sub_id,
             team_id=team_id,
             channel_id=channel_id,
+            user_id=user_id,
             body=body,
         ))
         client.api_call(
