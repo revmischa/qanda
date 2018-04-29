@@ -105,9 +105,10 @@ class Model:
         # record the message
         self.new_message(
             from_=user_id,
-            to_=channel_id,
+            to_='slack',
             body=body,
             question_id=q['id'],
+            is_question=True,
             **slack_params,
         )
 
@@ -142,6 +143,7 @@ class Model:
             slack_channel_id=channel_id,
             slack_team_id=team_id,
             source='slack',
+            is_answer=True,
         )
         # look for a question that was sent to the sender
         filter_expression = Attr('question_id').exists() & Attr('slack_team_id').eq(team_id)
@@ -159,6 +161,8 @@ class Model:
             sid=sid,
             from_=from_,
             to_=to_,
+            is_answer=True,
+            source='sms',
         )
 
         # look for a question that was sent to the sender
@@ -181,9 +185,7 @@ class Model:
     def new_answer_for_message(self, q_msg, a_msg):
         # look up question that was asked
         question_id = q_msg['question_id']
-        assert question_id
-        question = self.question.get_item(Key={'id': question_id})['Item']
-        assert question
+        question = self.question.get_item(Key={'id': question_id})
 
         # record the answer
         answer = self.new_answer(question, a_msg)

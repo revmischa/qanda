@@ -36,7 +36,6 @@ class Notify:
         # get question
         question_id = answer['question_id']
         question = qanda.table.question.get_item(Key={'id': question_id})['Item']
-        assert question
         source = question['source']
         # notify
         if source == 'slack':
@@ -78,6 +77,7 @@ class Notify:
             slack_channel_id=channel_id,
             slack_team_id=team_id,
             question_id=question['id'],
+            is_question=True,
         )
 
         client = SlackApp.get_client_for_team_id(team_id)
