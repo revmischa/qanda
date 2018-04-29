@@ -29,3 +29,5 @@ SLACK_VERIFICATION_TOKEN = get_ssm_param('qanda_slack_verification_token')
 # maybe don't hardcode?
 # SLACK_OAUTH_REDIRECT_URL = "https://qanda.llolo.lol/v1/Prod/slack/oauth"
 SLACK_OAUTH_REDIRECT_URL = "https://xtx4cyxavc.execute-api.eu-central-1.amazonaws.com/Prod/slack/oauth"
+
+WORKSPACE_PERMISSIONS = False  # using new developer preview workspace permissions mode?

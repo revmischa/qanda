@@ -72,7 +72,13 @@ class SlackApp:
         # in the new slack apps - there is no bot token. it's just access_token and the app is a bot.
         if 'access_token' not in auth_token:
             raise Exception(f"missing access_token in {auth_token}")
-        bot_token = auth_token['access_token']
+        # need to use bot access token?
+        if app.config['WORKSPACE_PERMISSIONS']:
+            if 'bot' not in auth_token:
+                raise Exception(f"missing bot access_token in {auth_token}")
+            bot_token = auth_token['bot']['bot_access_token']
+        else:
+            bot_token = auth_token['access_token']
         sc = SlackClient(bot_token)
         return sc
 
@@ -81,7 +87,12 @@ class SlackApp:
         auth_token = self.get_auth_token()
         if not auth_token:
             return None
-        return auth_token['app_user_id']
+        if app.config['WORKSPACE_PERMISSIONS']:
+            if 'bot' not in auth_token:
+                raise Exception(f"missing bot access_token in {auth_token}")
+            return auth_token['bot']['bot_user_id']
+        else:
+            return auth_token['app_user_id']
 
     def get_auth_token(self) -> Optional[Dict]:
         return qanda.table.auth_token.get_item(Key={
