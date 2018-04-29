@@ -1,6 +1,7 @@
 from marshmallow import fields, Schema
 from flask import request
 import qanda.table
+from qanda import app
 import logging
 from typing import Optional, Dict
 from slackclient import SlackClient
@@ -20,7 +21,7 @@ class SlackSlashcommandSchema(Schema):
 
     https://api.slack.com/custom-integrations/slash-commands#how_do_commands_work
     """
-    text = fields.Str()
+    body = fields.Str(load_from='text')
     token = fields.Str()
     team_id = fields.Str()
     team_domain = fields.Str()
@@ -129,7 +130,8 @@ class SlackApp:
         is_pm = channel_id.startswith('D')  # D for direct message, C for channel
         if not is_pm:
             # in-channel msg; eh just bail
-            save_message()
+            if app.debug:
+                save_message()
             return
 
         # now look up what OUR user id is
@@ -185,7 +187,7 @@ class SlackApp:
             if ok:
                 reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
             else:
-                reply(text="Sorry... I don't have any record of asking you a question.")
+                reply(text="So sorry... I don't have any record of asking you a question.")
 
         else:
             # unknown

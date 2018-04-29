@@ -16,6 +16,8 @@ log = logging.getLogger(__name__)
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
     """Slashcommand handler."""
+    import pprint
+    pprint.pprint(kwargs)
     g_model.new_question_from_slack(**kwargs)
     return {
         'text': "Your question has been asked. Please wait for random humans to answer it."
