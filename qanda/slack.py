@@ -14,9 +14,9 @@ Commands:
   :mailbox: Get notified of new questions: *subscribe*
   :zipper_mouth_face: Stop getting notified of new questions: *unsubscribe*
 
-To:
-  :ear: Ask an anonymous question: *ask ....*
-  :open_mouth: Answer a question anonymously: *reply ....*
+
+  :ear: Ask an anonymous question: "*ask ....*"
+  :open_mouth: Answer a question anonymously: "*reply ....*"
 """
 
 
@@ -174,7 +174,7 @@ class SlackApp:
                     slack_user_id=user_id,
                     body=body,
                 ))
-            reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up {LOGO}")
+            reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscribe\" at any time to shut me up {LOGO}")
             log.info("new slack subscriber!")
 
         elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
