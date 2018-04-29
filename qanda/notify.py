@@ -7,6 +7,15 @@ log = logging.getLogger(__name__)
 
 
 class Notify:
+    def _is_asker(self, qa, phone=None, slack_channel_id=None) -> bool:
+        if phone:
+            if 'phone' in qa:
+                return qa['phone'] == phone
+        if slack_channel_id:
+            if 'slack_channel_id' in qa:
+                return qa['slack_channel_id'] == slack_channel_id
+        return False
+
     def notify_of_question(self, question):
         # send out messages to subscribers
         # FIXME: paginate
@@ -14,9 +23,13 @@ class Notify:
         notified = 0
         for sub in subscribers['Items']:
             if 'phone' in sub:
+                if self._is_asker(question, phone=sub['phone']):
+                    continue
                 if self.notify_sms_of_question(sub, question):
                     notified += 1
             elif 'slack_channel_id' in sub:
+                if self._is_asker(question, slack_channel_id=sub['slack_channel_id']):
+                    continue
                 if self.notify_slack_of_question(sub, question):
                     notified += 1
             else:
@@ -51,7 +64,7 @@ class Notify:
     def notify_slack_of_question(self, subscriber, question):
         question_body = question['body']
         channel_id: str = subscriber['slack_channel_id']
-        team_id: str = subscriber['team_id']
+        team_id: str = subscriber['slack_team_id']
         client = SlackApp.get_client_for_team_id(team_id)
         # post question
         client.api_call(

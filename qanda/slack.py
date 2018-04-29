@@ -9,9 +9,9 @@ log = logging.getLogger(__name__)
 
 LOGO = ":face_with_monocle:"
 USAGE = """
-:point_right: Get notified of new questions: _subscribe_
-:point_right: Stop getting notified of new questions: _unsubscribe_
-:point_right: Ask a private question: _ask ...._
+:point_right: Get notified of new questions: *subscribe*
+:point_right: Stop getting notified of new questions: *unsubscribe*
+:point_right: Ask a private question: *ask ....*
 """
 
 
