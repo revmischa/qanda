@@ -17,6 +17,7 @@ class Model:
         self.question = qanda.table.question
         self.answer = qanda.table.answer
         self.subscriber = qanda.table.subscriber
+        self.auth_token = qanda.table.auth_token
 
     def make_id(self) -> str:
         return str(uuid.uuid4())
@@ -26,6 +27,13 @@ class Model:
             id=self.make_id(),
             created=int(time.time()),
         )
+
+    def save_slack_tokens(self, token_res):
+        """Store OAuth response tokens from finished Slack OAuth flow."""
+        print(token_res)
+        self.auth_token.put_item(Item=dict(
+            **token_res,
+        ))
 
     def new_message(self,
                     from_: str,

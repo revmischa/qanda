@@ -3,13 +3,14 @@ from qanda import g_model, app
 from flask_apispec import use_kwargs, marshal_with
 from flask import request, redirect, url_for
 import requests
+from slackclient import SlackClient
 
 
 @app.route('/slack/slash_ask', methods=['POST'])
 @use_kwargs(SlackSlashcommandSchema(strict=True))
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
-    # save question
+    """Slashcommand handler."""
     g_model.new_question_from_slack(**kwargs)
     return {
         'text':
@@ -33,20 +34,19 @@ def slack_install():
 def slack_oauth():
     """Handle Slack oauth.
 
-    Exchange code for auth token.
+    Exchange code for auth token. Save in auth_token.
     """
     code = request.args.code
     print(f"code; {code}")
     # get auth token
     print(f"OAUTH_CLIENT_ID: {app.config.get('SLACK_OAUTH_CLIENT_ID')}")
-    res = requests.get(
-        'https://slack.com/api/oauth.access',
-        params={
-            'code': code,
-            'client_id': app.config['SLACK_OAUTH_CLIENT_ID'],
-            'client_secret': app.config['SLACK_OAUTH_CLIENT_SECRET'],
-            'redirect_uri': app.config['SLACK_OAUTH_REDIRECT_URI'],
-        }).json()
-
-    print(res)
+    sc = SlackClient("")
+    auth_response = sc.api_call(
+        "oauth.access",
+        client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
+        client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URI'],
+        code=code,
+    )
+    g_model.save_slack_tokens(auth_response)
     return redirect(url_for('https://github.com/revmischa/qanda'))
