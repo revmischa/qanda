@@ -52,10 +52,11 @@ class SlackApp:
 
     def get_client(self) -> SlackClient:
         # look up auth token for this team so we can reply
-        auth_token = qanda.table.auth_token.get_item(Key={'id': self.team_id})['Item']
-        if not auth_token:
+        auth_token = qanda.table.auth_token.get_item(Key={'id': self.team_id})
+        if not 'Item' in auth_token:
             log.warning(f"can't notify slack team {self.team_id} of response - missing auth token")
             return None
+        auth_token = auth_token['Item']
         # now we have an auth token and everything we need to notify the user or channel
         client = self.get_client_for_auth_token(auth_token)
         return client
