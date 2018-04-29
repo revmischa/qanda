@@ -54,12 +54,12 @@ def slack_oauth():
         "oauth.access",
         client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
         client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'].lowercase(),
         code=code,
     )
     if 'error' in auth_response:
         log.error(f"got error in auth response: {auth_response['error']}")
-        return
+        return auth_response['error']
 
     # save
     g_model.save_slack_tokens(auth_response)
