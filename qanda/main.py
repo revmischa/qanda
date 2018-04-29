@@ -5,4 +5,4 @@ sys.path.append(lib_path)
 sys.path.append(vendor_path)
 
 from qanda import app
-app.run()
+app.run(debug=True)

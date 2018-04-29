@@ -94,6 +94,7 @@ class Model:
         self.new_message(
             from_=user_id,
             to_=channel_id,
+            body=text,
             question_id=q['id'],
             **slack_params,
         )

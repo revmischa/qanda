@@ -20,7 +20,18 @@ class Notify:
                 log.error("got subscriber but no phone or slack_channel_id")
 
     def notify_of_answer(self, answer):
-        self.notify_slack_of_answer(answer)
+        # get question
+        question_id = answer['question_id']
+        question = qanda.table.question.get_item(Key={'id': question_id})['Item']
+        assert question
+        source = question['source']
+        # notify
+        if source == 'slack':
+            self.notify_slack_of_answer(question, answer)
+        elif source == 'sms':
+            self.notify_sms_of_answer(question, answer)
+        else:
+            log.error(f"unknown question source {question}")
 
     def get_slack_bot_client(self, auth_token) -> SlackClient:
         # make a client with the bot token
@@ -63,15 +74,11 @@ class Notify:
             text=f"""New question "{question_body}"\nType A: ... to reply""",
         )
 
-    def notify_slack_of_answer(self, answer):
+    def notify_sms_of_answer(self, question, answer):
+        pass
+
+    def notify_slack_of_answer(self, question, answer):
         """Post answer to asker in channel or PM."""
-        # look up question info
-        question_id = answer['question_id']
-        assert question_id
-        # get question
-        question = qanda.table.question.get_item(Key={'id': question_id})['Item']
-        assert question
-        source = question['source']
         channel_id = question['slack_channel_id']
         team_domain = question['slack_team_domain']
         team_id = question['slack_team_id']
@@ -80,7 +87,6 @@ class Notify:
         answer_body = answer['body']
 
         # these should all be set
-        assert source == 'slack'
         assert team_domain
         assert team_id
         assert user_id
