@@ -13,13 +13,15 @@ Once you've [added the app](https://slack.com/oauth/authorize?client_id=30325029
 # Private questions:
 ![ask1](screenshots/a1.png)
 
+---
 
 ![answer](screenshots/r1.png)
 
+---
 
 ![ask2](screenshots/a2.png)
 
-
+---
 
 
 # Public questions:
