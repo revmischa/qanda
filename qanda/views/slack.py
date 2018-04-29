@@ -25,7 +25,7 @@ def slack_install():
         'https://slack.com/oauth/authorize',
         client_id=['SLACK_OAUTH_CLIENT_ID'],
         scope='commands',
-        redirect_uri=app.config['OAUTH_REDIRECT_URL'],
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
     )
     return redirect(url)
 
