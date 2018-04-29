@@ -7,10 +7,11 @@ from slackclient import SlackClient
 
 log = logging.getLogger(__name__)
 
+LOGO = ":face_with_monocle:"
 USAGE = """
-Get notified of new questions: subscribe
-Stop getting notified of new questions: unsubscribe
-Ask a private question: ask ....
+:point_right: Get notified of new questions: _subscribe_
+:point_right: Stop getting notified of new questions: _unsubscribe_
+:point_right: Ask a private question: _ask ...._
 """
 
 
@@ -144,12 +145,12 @@ class SlackApp:
             qanda.table.subscriber.put_item(
                 Item=dict(
                     id=sub_id,
-                    team_id=self.team_id,
-                    channel_id=channel_id,
-                    user_id=user_id,
+                    slack_team_id=self.team_id,
+                    slack_channel_id=channel_id,
+                    slack_user_id=user_id,
                     body=body,
                 ))
-            reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up :face_with_monocle:")
+            reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up {LOGO}")
 
         elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
             # unsubscribe
@@ -162,4 +163,4 @@ class SlackApp:
             # unknown
             save_message()
             log.info(f"got unfamiliar IM command: {body}")
-            reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
+            reply(text=f"So sorry.. not sure what you're asking {LOGO}\nCommands are: {USAGE}")
