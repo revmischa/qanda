@@ -187,7 +187,7 @@ class Model:
     def new_answer_for_message(self, q_msg, a_msg):
         # look up question that was asked
         question_id = q_msg['question_id']
-        question = self.question.get_item(Key={'id': question_id})
+        question = self.question.get_item(Key={'id': question_id})['Item']
 
         # record the answer
         answer = self.new_answer(question, a_msg)

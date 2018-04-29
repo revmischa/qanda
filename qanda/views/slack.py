@@ -18,6 +18,7 @@ def slack_slash_ask(**kwargs):
     """Slashcommand handler."""
     g_model.new_question_from_slack(**kwargs)
     return {
+        "response_type": "in_channel",
         'text': "Your question has been asked. Please wait for random humans to answer it."
     }
 
