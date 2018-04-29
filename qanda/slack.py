@@ -173,7 +173,7 @@ class SlackApp:
                 user_id=user_id,
                 team_id=self.team_id,
             )
-            reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
+            reply(text=f"{LOGO} Splendid! Your anonymous question has been sent out to {notified} people.\nI'll message you with the answers.")
 
         elif bodylc.startswith('reply '):
             # submit answer
@@ -185,7 +185,7 @@ class SlackApp:
                 team_id=self.team_id,
             )
             if ok:
-                reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
+                reply(text=f"{LOGO} Thanks! Your answer's been anonymously sent to the asker.")
             else:
                 reply(text="So sorry... I don't have any record of asking you a question.")
 
