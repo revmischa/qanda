@@ -21,6 +21,8 @@ def slack_slash_ask(**kwargs):
         "Your question has been asked. Please wait for random humans to answer it."
     }
 
+def get_oauth_redirect_url():
+    return url_for('slack_oauth')
 
 @app.route('/slack/install', methods=['GET'])
 def slack_install():
@@ -29,7 +31,7 @@ def slack_install():
         dict(
             client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
             scope='commands identity.team channels:history chat:write im:write reactions:write',
-            redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
+            redirect_uri=get_oauth_redirect_url(),
             _external=True,
         ))
     return redirect(url)
@@ -56,7 +58,7 @@ def slack_oauth():
         "oauth.access",
         client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
         client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
+        redirect_uri=get_oauth_redirect_url(),
         code=code,
     )
     if 'error' in auth_response:
