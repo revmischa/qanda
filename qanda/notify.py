@@ -60,12 +60,25 @@ class Notify:
         return True
 
     def notify_slack_of_question(self, subscriber, question):
+        from qanda import g_model
+
         question_body = question['body']
         channel_id: str = subscriber['slack_channel_id']
         team_id: str = subscriber['slack_team_id']
+        user_id: str = subscriber['slack_user_id']
 
         if self._is_poster(question, slack_channel_id=channel_id, slack_team_id=team_id):
             return
+
+        # record the notification
+        g_model.new_message(
+            from_='slack_notify',
+            to_=channel_id,
+            slack_user_id=user_id,
+            slack_channel_id=channel_id,
+            slack_team_id=team_id,
+            question_id=question['id'],
+        )
 
         client = SlackApp.get_client_for_team_id(team_id)
         # post question

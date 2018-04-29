@@ -42,7 +42,7 @@ class Model:
     def new_message(self,
                     from_: str,
                     to_: Any,
-                    body: str,
+                    body: str = None,
                     sid: str = None,
                     question_id: str = None,
                     answer_id: str = None,
@@ -51,10 +51,11 @@ class Model:
             'from': from_,
             'to': to_,
             'sid': sid,
-            'body': body,
             **self.id_and_created(),
             **kwargs,
         }
+        if body:
+            msg['body'] = body
         if question_id:
             msg['question_id'] = question_id
         if answer_id:
@@ -82,14 +83,17 @@ class Model:
         :returns: number of people notified.
         """
         slack_params = dict(
-            slack_channel_name=channel_name,
             slack_channel_id=channel_id,
             slack_team_id=team_id,
-            slack_team_domain=team_domain,
-            slack_user_name=user_name,  # deprecated
             slack_user_id=user_id,
             source='slack',
         )
+        if channel_name:
+            slack_params['slack_channel_name'] = channel_name
+        if team_domain:
+            slack_params['slack_team_domain'] = team_domain
+        if user_name:
+            slack_params['slack_user_name'] = user_name
         # record question
         q = dict(
             body=body,
