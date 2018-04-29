@@ -74,11 +74,11 @@ class SlackApp:
             raise Exception(f"missing access_token in {auth_token}")
         # need to use bot access token?
         if app.config['WORKSPACE_PERMISSIONS']:
+            bot_token = auth_token['access_token']
+        else:
             if 'bot' not in auth_token:
                 raise Exception(f"missing bot access_token in {auth_token}")
             bot_token = auth_token['bot']['bot_access_token']
-        else:
-            bot_token = auth_token['access_token']
         sc = SlackClient(bot_token)
         return sc
 
@@ -109,11 +109,14 @@ class SlackApp:
         # handle event
         if type == 'message':
             # handle message subtype (legacy events)
-            if 'subtype' in evt:
-                subtype = evt['subtype']
-                if subtype == 'bot_message':
-                    # slack is notifying us of a message we just sent. thanks.
-                    return True
+            # if 'subtype' in evt:
+            #     subtype = evt['subtype']
+            #     if subtype == 'bot_message':
+            #         # slack is notifying us of a message we just sent. thanks.
+            #         return True
+            if 'bot_id' in evt:
+                # this is a message FROM the bot... don't care since we sent it
+                return True
 
             # PM
             self.handle_message_event(evt)
