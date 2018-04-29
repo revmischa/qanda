@@ -65,7 +65,26 @@ def handle_im_subscribe(team_id, evt):
     body = evt['text']
     channel_id = evt['channel']
     user_id = evt['user']
-    if body.lowercase().startswith('subscribe'):
+
+    # record message
+    def save_message():
+        g_model.new_message(
+            from_=user_id,
+            slack_channel_id=channel_id,
+            slack_team_id=team_id,
+            source='slack',
+        )
+
+    def reply(**kwargs):
+        client.api_call(
+            "chat.postMessage",
+            channel=channel_id,
+            **kwargs,
+        )
+
+    bodylc = body.lowercase()
+
+    if bodylc.startswith('subscribe'):
         # subscribe user
         sub_id = f"{team_id}|{channel_id}"
         qanda.table.subscriber.put_item(Item=dict(
@@ -75,17 +94,19 @@ def handle_im_subscribe(team_id, evt):
             user_id=user_id,
             body=body,
         ))
-        client.api_call(
-            "chat.postMessage",
-            channel=channel_id,
-            text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up :face_with_monocle:",
-        )
+        reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up :face_with_monocle:")
+
+    elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
+        # unsubscribe
+        sub_id = f"{team_id}|{channel_id}"
+        qanda.table.subscriber.delete_item(Key={'id': sub_id})
+        reply(text="Ok! I'll shut up now!")
+        save_message()
+
     else:
-        client.api_call(
-            "chat.postMessage",
-            channel=channel_id,
-            text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}",
-        )
+        # unknown
+        save_message()
+        reply(text=f"So sorry.. not sure what you're asking :face_with_monocle:\nCommands are: {USAGE}")
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)

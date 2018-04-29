@@ -74,9 +74,9 @@ class Model:
         self.answer.put_item(Item=answer)
         return answer
 
-    def new_question_from_slack(self, text: str, channel_id: str, channel_name,
-                                user_id: str, team_id: str, team_domain: str,
-                                user_name: str=None,
+    def new_question_from_slack(self, text: str, channel_id: str,
+                                user_id: str, team_id: str, team_domain: str=None,
+                                user_name: str=None, channel_name: str=None,
                                 **kwargs):
 
         slack_params = dict(
