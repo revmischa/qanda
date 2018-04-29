@@ -34,8 +34,19 @@ Resources:
                 - "ssm:GetParameter"
                 - "ssm:GetParameters"
               Resource:
-                # FIXME: set as stack input
                 - "qanda_*"
+                - "qa_*"
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Action:
+                - "dynamodb:Query"
+              Resource:
+                - !Ref MessageTable
+                - !Ref QuestionTable
+                - !Ref AnswerTable
+                - !Ref SubscriberTable
+                - !Ref AuthTokenTable
 
 
   # TABLES:

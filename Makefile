@@ -15,5 +15,8 @@ test-ask:
 start:
 	$(SAM) local start-api --env-vars invoke/env_vars.json Flask
 
+validate:
+	$(SAM) validate
+
 bash:
 	docker run -v $PWD:/var/task -it lambci/lambda:build-python3.6 /bin/bash
