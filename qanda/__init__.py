@@ -32,6 +32,7 @@ g_notify = Notify()
 from qanda.model import Model
 g_model = Model()
 
+import qanda.views.index
 import qanda.views.slack
 import qanda.views.twilio
 
