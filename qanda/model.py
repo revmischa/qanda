@@ -77,8 +77,11 @@ class Model:
     def new_question_from_slack(self, text: str, channel_id: str,
                                 user_id: str, team_id: str, team_domain: str=None,
                                 user_name: str=None, channel_name: str=None,
-                                **kwargs):
+                                **kwargs) -> int:
+        """Record and publish a new question asked from a slack PM or slashcommand.
 
+        :returns: number of people notified.
+        """
         slack_params = dict(
             slack_channel_name=channel_name,
             slack_channel_id=channel_id,
@@ -104,8 +107,11 @@ class Model:
             question_id=q['id'],
             **slack_params,
         )
+
         # notify
-        g_notify.notify_of_question(q)
+        notified = g_notify.notify_of_question(q)
+        log.info("new slack question sent to {notified} people")
+        return notified
 
     def new_answer_from_sms(self, body: str, sid: str, from_: str, to_: str):
         answer_msg = self.new_message(

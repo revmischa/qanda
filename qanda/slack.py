@@ -101,6 +101,8 @@ class SlackApp:
         return False
 
     def handle_im_subscribe(self, evt):
+        from qanda import g_model
+
         client = self.get_client()
         body = evt['text']
         channel_id = evt['channel']
@@ -108,7 +110,6 @@ class SlackApp:
 
         # record message
         def save_message():
-            from qanda import g_model
             g_model.new_message(
                 from_=user_id,
                 to_='event_hook',
@@ -151,13 +152,26 @@ class SlackApp:
                     body=body,
                 ))
             reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscrbe\" at any time to shut me up {LOGO}")
+            log.info("new slack subscriber!")
 
         elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
             # unsubscribe
             sub_id = f"{self.team_id}|{channel_id}"
             qanda.table.subscriber.delete_item(Key={'id': sub_id})
             reply(text="Ok! I'll shut up now!")
+            log.info("slack user unsubscribed!")
             save_message()
+
+        elif bodylc.startswith('ask '):
+            # ask a question
+            _, q_text = body.split(None, maxsplit=1)
+            notified = g_model.new_question_from_slack(
+                text=q_text,
+                channel_id=channel_id,
+                user_id=user_id,
+                team_id=self.team_id,
+            )
+            reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
 
         else:
             # unknown

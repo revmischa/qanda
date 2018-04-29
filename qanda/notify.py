@@ -11,13 +11,17 @@ class Notify:
         # send out messages to subscribers
         # FIXME: paginate
         subscribers = qanda.table.subscriber.scan()  # NB only returns 1MB of results
+        notified = 0
         for sub in subscribers['Items']:
             if 'phone' in sub:
-                self.notify_sms_of_question(sub, question)
+                if self.notify_sms_of_question(sub, question):
+                    notified += 1
             elif 'slack_channel_id' in sub:
-                self.notify_slack_of_question(sub, question)
+                if self.notify_slack_of_question(sub, question):
+                    notified += 1
             else:
                 log.error("got subscriber but no phone or slack_channel_id")
+        return notified
 
     def notify_of_answer(self, answer):
         # get question
@@ -42,6 +46,7 @@ class Notify:
             to=phone,
             body=f"Question:\n\"{question_body}\"\n\nReply w/ answer",
         )
+        return True
 
     def notify_slack_of_question(self, subscriber, question):
         question_body = question['body']
@@ -54,6 +59,7 @@ class Notify:
             channel=channel_id,
             text=f"""New question "{question_body}"\nType A: ... to reply""",
         )
+        return True
 
     def notify_sms_of_answer(self, question, answer):
         pass
