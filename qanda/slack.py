@@ -10,10 +10,13 @@ log = logging.getLogger(__name__)
 
 LOGO = ":face_with_monocle:"
 USAGE = """
-:mailbox: Get notified of new questions: *subscribe*
-:zipper_mouth_face: Stop getting notified of new questions: *unsubscribe*
-:ear: Ask an anonymous question: *ask ....*
-:open_mouth: Answer a question anonymously: *reply ....*
+Commands:
+  :mailbox: Get notified of new questions: *subscribe*
+  :zipper_mouth_face: Stop getting notified of new questions: *unsubscribe*
+
+To:
+  :ear: Ask an anonymous question: *ask ....*
+  :open_mouth: Answer a question anonymously: *reply ....*
 """
 
 
@@ -198,4 +201,4 @@ class SlackApp:
             # unknown
             save_message()
             log.info(f"got unfamiliar IM command: {body}")
-            reply(text=f"So sorry.. not sure what you're asking {LOGO}\nCommands are: {USAGE}")
+            reply(text=f"So sorry.. not sure what you're asking {LOGO}\n{USAGE}")
