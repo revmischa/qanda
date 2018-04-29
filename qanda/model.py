@@ -22,18 +22,22 @@ class Model:
     def make_id(self) -> str:
         return str(uuid.uuid4())
 
-    def id_and_created(self):
+    def id_and_created(self, id_=None):
+        if id_ is None:
+            id_ = self.make_id()
         return dict(
-            id=self.make_id(),
+            id=id_,
             created=int(time.time()),
         )
 
     def save_slack_tokens(self, token_res):
         """Store OAuth response tokens from finished Slack OAuth flow."""
-        print(token_res)
+        # delete existing item if one exists
+        team_id = token_res['team_id']
+        log.debug(token_res)
         self.auth_token.put_item(Item=dict(
             **token_res,
-            **self.id_and_created(),
+            **self.id_and_created(id_=team_id),
         ))
 
     def new_message(self,

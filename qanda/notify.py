@@ -44,7 +44,7 @@ class Notify:
 
     def get_slack_bot_client_for_team(self, team_id, team_domain='unknown') -> SlackClient:
         # look up auth token for this team so we can reply
-        auth_token = qanda.table.auth_token.get_item(Key={'slack_team_id': team_id})['Item']
+        auth_token = qanda.table.auth_token.get_item(Key={'id': team_id})['Item']
         if not auth_token:
             log.warning(f"can't notify slack team {team_id} ({team_domain}) of response - missing auth token")
             return None

@@ -22,7 +22,7 @@ def slack_slash_ask(**kwargs):
     }
 
 def get_oauth_redirect_url():
-    return url_for('slack_oauth')
+    return url_for('slack_oauth', _external=True)
 
 @app.route('/slack/install', methods=['GET'])
 def slack_install():
@@ -47,12 +47,8 @@ def slack_oauth():
     if 'error' in req:
         return "im so sorry :("
 
+    # exchange code for access token
     code = req['code']
-    import pprint
-    pprint.pprint(request.args)
-    print(f"code; {code}")
-    # get auth token
-    print(f"OAUTH_CLIENT_ID: {app.config.get('SLACK_OAUTH_CLIENT_ID')}")
     sc = SlackClient("")
     auth_response = sc.api_call(
         "oauth.access",
@@ -65,5 +61,6 @@ def slack_oauth():
         log.error(f"got error in auth response: {auth_response['error']}")
         return
 
+    # save
     g_model.save_slack_tokens(auth_response)
     return redirect('https://github.com/revmischa/qanda')
