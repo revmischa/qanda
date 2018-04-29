@@ -1,8 +1,7 @@
 import uuid
-# from qanda.slack import SlackSlashcommandSchema
 import time
 from qanda import g_twil, g_notify
-from typing import Any
+from typing import Any, Optional, Dict
 from boto3.dynamodb.conditions import Key, Attr
 import logging
 import qanda.table
@@ -74,7 +73,7 @@ class Model:
         self.answer.put_item(Item=answer)
         return answer
 
-    def new_question_from_slack(self, text: str, channel_id: str,
+    def new_question_from_slack(self, body: str, channel_id: str,
                                 user_id: str, team_id: str, team_domain: str=None,
                                 user_name: str=None, channel_name: str=None,
                                 **kwargs) -> int:
@@ -93,7 +92,7 @@ class Model:
         )
         # record question
         q = dict(
-            body=text,
+            body=body,
             **slack_params,
             **self.id_and_created(),
         )
@@ -103,7 +102,7 @@ class Model:
         self.new_message(
             from_=user_id,
             to_=channel_id,
-            body=text,
+            body=body,
             question_id=q['id'],
             **slack_params,
         )
@@ -112,6 +111,43 @@ class Model:
         notified = g_notify.notify_of_question(q)
         log.info("new slack question sent to {notified} people")
         return notified
+
+    def _find_question_message_to(self, to, filter_expression=None) -> Optional[Dict]:
+        """Look up most recent message that was sent to `to`."""
+        if not filter_expression:
+            filter_expression = Attr('question_id').exists()
+        res = self.message.query(
+            IndexName='to-created-index',  # FIXME: put in CF
+            ScanIndexForward=False,  # give us most recent first
+            KeyConditionExpression=Key('to').eq(to),  # find message sent to this answerer
+            FilterExpression=filter_expression,  # should have been for a question
+        )
+
+        count = res['Count']
+        if count == 0:
+            return None
+
+        items = res['Items']
+        return items[0]  # should be newest
+
+    def new_answer_from_slack_pm(self, body: str, user_id: str, team_id: str, channel_id: str) -> bool:
+        answer_message = self.new_message(
+            from_=user_id,
+            to_='slack_pm',
+            body=body,
+            slack_channel_id=channel_id,
+            slack_team_id=team_id,
+            source='slack',
+        )
+        # look for a question that was sent to the sender
+        filter_expression = Attr('question_id').exists() & Attr('slack_team_id').eq(team_id)
+        question_msg = self._find_question_message_to(to=channel_id, filter_expression=filter_expression)
+        if not question_msg:
+            log.warning(f"got slack response to question but no question found for {channel_id}")
+            return False
+
+        self.new_answer_for_message(question_msg, answer_message)
+        return True
 
     def new_answer_from_sms(self, body: str, sid: str, from_: str, to_: str):
         answer_msg = self.new_message(
@@ -122,17 +158,9 @@ class Model:
         )
 
         # look for a question that was sent to the sender
-        sent_messages_res = self.message.query(
-            IndexName='to-created-index',  # FIXME: put in CF
-            ScanIndexForward=False,  # give us most recent first
-            KeyConditionExpression=Key('to').eq(from_),  # find message sent to this answerer
-            FilterExpression=Attr('question_id').exists(),  # should have been for a question
-        )
+        question_msg = self._find_question_message_to(to=from_)
 
-        count = sent_messages_res['Count']
-        sent_messages = sent_messages_res['Items']
-
-        if count == 0:
+        if not question_msg:
             # we got a SMS but no question has ever been sent to this number...
             # must not be an answer?
             log.warning(f"got SMS but no questions have been asked. from: {from_}. body: {body}")
@@ -141,19 +169,20 @@ class Model:
                 to=from_,
                 body=f"Hey there! Sorry but we don't understand what you're sending us.",
             )
-            return
+            return False
 
-        # get first result
-        question_msg = sent_messages[0]
+        self.new_answer_for_message(question_msg, answer_msg)
+        return True
 
+    def new_answer_for_message(self, q_msg, a_msg):
         # look up question that was asked
-        question_id = question_msg['question_id']
+        question_id = q_msg['question_id']
         assert question_id
         question = self.question.get_item(Key={'id': question_id})['Item']
         assert question
 
         # record the answer
-        answer = self.new_answer(question, answer_msg)
+        answer = self.new_answer(question, a_msg)
 
         # notify asker of the answer
         g_notify.notify_of_answer(answer)

@@ -72,7 +72,20 @@ class Notify:
         client.api_call(
             "chat.postMessage",
             channel=channel_id,
-            text=f"""New question "{question_body}"\nType A: ... to reply""",
+            attachments=[
+                dict(
+                    color="#36a64f",
+                    fallback=f"""New question "{question_body}"\nTo reply, type: *reply ...*""",
+                    title=f"""New Question Asked""",
+                    text=f"{question_body}",
+                    fields=[
+                        dict(
+                            title="Want to reply?",
+                            value="Type: *reply ...*",
+                        )
+                    ]
+                )
+            ],
         )
         return True
 

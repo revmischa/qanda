@@ -54,7 +54,7 @@ class SlackApp:
     def get_client(self) -> SlackClient:
         # look up auth token for this team so we can reply
         auth_token = qanda.table.auth_token.get_item(Key={'id': self.team_id})
-        if not 'Item' in auth_token:
+        if 'Item' not in auth_token:
             log.warning(f"can't notify slack team {self.team_id} of response - missing auth token")
             return None
         auth_token = auth_token['Item']
@@ -166,12 +166,26 @@ class SlackApp:
             # ask a question
             _, q_text = body.split(None, maxsplit=1)
             notified = g_model.new_question_from_slack(
-                text=q_text,
+                body=q_text,
                 channel_id=channel_id,
                 user_id=user_id,
                 team_id=self.team_id,
             )
             reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
+
+        elif bodylc.startswith('reply '):
+            # submit answer
+            _, q_text = body.split(None, maxsplit=1)
+            ok = g_model.new_answer_from_slack_pm(
+                body=q_text,
+                channel_id=channel_id,
+                user_id=user_id,
+                team_id=self.team_id,
+            )
+            if ok:
+                reply(text=f"{LOGO} Splendid! Your message has been sent out to {notified} people.\nI'll message you with the answers.")
+            else:
+                reply(text="Sorry... I don't have any record of asking you a question.")
 
         else:
             # unknown
