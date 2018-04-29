@@ -7,7 +7,7 @@ log = logging.getLogger(__name__)
 
 
 class Notify:
-    def _is_asker(self, qa, phone=None, slack_channel_id=None, slack_team_id=None) -> bool:
+    def _is_poster(self, qa, phone=None, slack_channel_id=None, slack_team_id=None) -> bool:
         if phone:
             if 'phone' in qa:
                 return qa['phone'] == phone
@@ -50,7 +50,7 @@ class Notify:
         # text question
         question_body: str = question['body']
         phone: str = subscriber['phone']
-        if self._is_asker(question, phone=phone):
+        if self._is_poster(question, phone=phone):
             return False
         g_twil.send_sms(
             question_id=question['id'],
@@ -64,7 +64,7 @@ class Notify:
         channel_id: str = subscriber['slack_channel_id']
         team_id: str = subscriber['slack_team_id']
 
-        if self._is_asker(question, slack_channel_id=channel_id. slack_team_id=team_id):
+        if self._is_poster(question, slack_channel_id=channel_id, slack_team_id=team_id):
             return
 
         client = SlackApp.get_client_for_team_id(team_id)
@@ -86,6 +86,9 @@ class Notify:
         user_id = question['slack_user_id']
         question_body = question['body']
         answer_body = answer['body']
+
+        if self._is_poster(answer, slack_channel_id=channel_id, slack_team_id=team_id):
+            return
 
         # these should all be set
         assert team_id
