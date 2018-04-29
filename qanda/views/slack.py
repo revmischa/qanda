@@ -37,6 +37,8 @@ def slack_oauth():
     Exchange code for auth token. Save in auth_token.
     """
     code = request.args.code
+    import pprint
+    pprint.pprint(request.args)
     print(f"code; {code}")
     # get auth token
     print(f"OAUTH_CLIENT_ID: {app.config.get('SLACK_OAUTH_CLIENT_ID')}")
