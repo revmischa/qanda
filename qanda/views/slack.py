@@ -83,7 +83,7 @@ def slack_oauth():
         "oauth.access",
         client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
         client_secret=app.config['SLACK_OAUTH_CLIENT_SECRET'],
-        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'].lowercase(),
+        redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'].lower(),
         code=code,
     )
     if 'error' in auth_response:
