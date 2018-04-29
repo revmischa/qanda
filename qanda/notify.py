@@ -75,16 +75,14 @@ class Notify:
             attachments=[
                 dict(
                     color="#36a64f",
-                    fallback=f"""New question "{question_body}"\nTo reply, type: *reply ...*""",
-                    title=f"""New Question Asked""",
+                    fallback=f""":man-raising-hand: New question "{question_body}"\nTo reply, type: *reply ...*""",
+                    title=f"""New Question Asked:""",
                     text=f"{question_body}",
-                    fields=[
-                        dict(
-                            title="Want to reply?",
-                            value="Type: *reply ...*",
-                        )
-                    ]
-                )
+                ),
+                dict(
+                    text=f":face_with_monocle: Want to reply? Type: *reply .....*",
+                ),
+
             ],
         )
         return True
