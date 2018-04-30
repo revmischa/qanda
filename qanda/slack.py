@@ -196,7 +196,7 @@ class SlackApp:
 
             # enable global subscription
             subscription['cross_slack'] = True
-            qanda.table.subscription.put_item(subscription)
+            qanda.table.subscriber.put_item(Item=subscription)
             reply(text=f"Awesome! Now you'll get all questions, regardless of their origin.\nBe prepared to see some offensive and terrible things.\nReply *local* to return to the hugbox of {team_name} at any time.")
 
         elif bodylc.startswith('local'):
@@ -205,7 +205,7 @@ class SlackApp:
 
             # disable global subscription
             subscription['cross_slack'] = False
-            qanda.table.subscription.put_item(subscription)
+            qanda.table.subscriber.put_item(Item=subscription)
             reply(text=f"Alrightie! You will now only get questions from {team_name}\nReply *global* to get messages from anywhere.")
 
         elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
@@ -248,7 +248,7 @@ class SlackApp:
 
     def get_subscription(self, channel_id):
         sub_id = f"{self.team_id}|{channel_id}"
-        res = qanda.table.subscription.get_item(Key={'id': sub_id})
+        res = qanda.table.subscriber.get_item(Key={'id': sub_id})
         return res['Item'] if 'Item' in res else None
 
     def get_team_info(self, client=None):
