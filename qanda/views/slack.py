@@ -44,9 +44,15 @@ def slack_event():
 
     # handle it
     slack = SlackApp(team_id)
-    if slack.handle_event_callback(evt_callback):
-        return "ok"
-    return "not ok", 500
+
+    try:
+        if slack.handle_event_callback(evt_callback):
+            return "ok", 200
+    except Exception as ex:
+        log.exception(ex)
+
+    # returning 200 for now no matter what
+    return "not ok", 200
 
 
 def get_oauth_redirect_url():

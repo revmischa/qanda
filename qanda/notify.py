@@ -34,6 +34,7 @@ class Notify:
                     notified += 1
             elif 'slack_channel_id' in sub:
                 sub_team_id = sub['slack_team_id']
+                assert client
                 if sub_team_id != team_id:
                     continue
 
