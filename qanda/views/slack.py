@@ -26,6 +26,7 @@ def slack_slash_ask(**kwargs):
 
 @app.route('/slack/event', methods=['POST'])
 def slack_event():
+    """Receive event from slack and queue it for later processing."""
     evt_callback = request.get_json()
 
     # check it's really slack and they have our secret
@@ -40,12 +41,22 @@ def slack_event():
     if type == 'url_verification':
         return evt_callback['challenge']
 
+    # skip processing some dumb events here
+    if 'event' in evt_callback:
+        evt = evt_callback['event']
+        type = evt['type']
+        if type == 'message':
+            if 'bot_id' in evt:
+                # this is a message FROM the bot... don't care since we sent it
+                return "ok"
+
     # process event async
     g_invoker.invoke_async(func='SLACK_EVENT_FUNCTION', payload=dict(
         slack_event_callback=evt_callback,
     ))
 
     return "ok"
+
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)

@@ -12,11 +12,6 @@ class Invoker:
             return None
         return json.dumps(payload)
 
-    def decode_lambda_payload(self, payload):
-        if payload is None:
-            return None
-        return json.loads(payload)
-
     def invoke_async(self, func: str, payload=None):
         """Async invoke a lambda, whose name is in app config under `func`."""
         awslambda = boto3.client('lambda')
