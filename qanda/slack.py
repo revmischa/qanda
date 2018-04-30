@@ -101,7 +101,7 @@ class SlackApp:
             'id': self.team_id
         })['Item']
 
-    def handle_event_callback(self, evt_callback) -> bool:
+    def handle_event_callback(self, evt_callback) -> None:
         """Handle an event webhook."""
         evt = evt_callback['event']
         type = evt['type']
@@ -116,31 +116,14 @@ class SlackApp:
             #         return True
             if 'bot_id' in evt:
                 # this is a message FROM the bot... don't care since we sent it
-                return True
+                return
 
-            # PM
-            # put in queue to process
-            # ...
-            try:
-                self.enqueue_event(evt_callback)
-            except Exception as ex:
-                log.exception(str(ex))
-                # return False
-
+            self.handle_message_event(evt)
+        else:
+            # unknown event
             import pprint
             pprint.pprint(evt)
-            self.handle_message_event(evt)
-            return True
-
-        # unknown event
-        import pprint
-        pprint.pprint(evt)
-        log.error(f"unknown event {type}")
-        return False
-
-    def enqueue_event(self, evt_callback):
-        """Save event for later processing."""
-        g_invoker.invoke_async(func='SLACK_EVENT_FUNCTION', payload=evt_callback)
+            log.error(f"unknown event {type}")
 
     def handle_message_event(self, evt):
         from qanda import g_model

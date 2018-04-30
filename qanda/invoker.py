@@ -1,7 +1,6 @@
 import boto3
-import pickle
-import base64
 import logging
+import json
 from qanda import app
 
 log = logging.getLogger(__name__)
@@ -11,12 +10,12 @@ class Invoker:
     def encode_lambda_payload(self, payload):
         if payload is None:
             return None
-        return base64.b64encode(pickle.dumps(payload))
+        return json.dumps(payload)
 
     def decode_lambda_payload(self, payload):
         if payload is None:
             return None
-        return pickle.loads(base64.b64decode(payload))
+        return json.loads(payload)
 
     def invoke_async(self, func: str, payload=None):
         """Async invoke a lambda, whose name is in app config under `func`."""

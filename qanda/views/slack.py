@@ -40,22 +40,12 @@ def slack_event():
     if type == 'url_verification':
         return evt_callback['challenge']
 
-    # useful fields
-    team_id = evt_callback['team_id']
+    # process event async
+    g_invoker.invoke_async(func='SLACK_EVENT_FUNCTION', payload=dict(
+        slack_event_callback=evt_callback,
+    ))
 
-    # handle it
-    slack = SlackApp(team_id)
-
-    try:
-        if slack.handle_event_callback(evt_callback):
-            return "ok", 200
-    except Exception as ex:
-        log.exception(ex)
-
-    # something bad happened
-    # (will retry)
-    return "not ok", 500
-
+    return "ok"
 
 def get_oauth_redirect_url():
     return url_for('slack_oauth', _external=True)
