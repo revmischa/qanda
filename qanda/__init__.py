@@ -6,6 +6,7 @@ sys.path.append(lib_path)
 sys.path.append(vendor_path)
 from flask import Flask
 import logging
+from slack_logger import SlackHandler, SlackFormatter
 
 log = logging.getLogger(__name__)
 
@@ -17,14 +18,23 @@ def boto_setup():
     # boto3.setup_default_session(region_name=os.getenv('TEST_REGION', 'eu-central-1'))
     boto3.set_stream_logger('botocore', level=logging.INFO)
 
+def log_setup(app):
+    slack_log_endpoint = app.config.get('SLACK_LOG_ENDPOINT')
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    handlers = [ch]
+    if slack_log_endpoint:
+        sh = SlackHandler(slack_log_endpoint)
+        sh.setFormatter(SlackFormatter())
+        sh.setLevel(logging.WARN)
+        handlers.append(sh)
+
+    logging.basicConfig(handlers=handlers)
+    logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
+    logging.getLogger('botocore.credentials').setLevel(logging.WARNING)
 
 # init AWS
 boto_setup()
-
-# init logging
-logging.basicConfig(level=logging.INFO)
-logging.getLogger('botocore.vendored.requests.packages.urllib3.connectionpool').setLevel(logging.WARNING)
-logging.getLogger('botocore.credentials').setLevel(logging.WARNING)
 
 ##############
 
@@ -33,6 +43,7 @@ app = Flask(__name__)
 app.config.from_pyfile('config.py', silent=False)
 # optional local config
 app.config.from_pyfile('local.cfg', silent=True)
+log_setup(app)
 
 from qanda.invoker import Invoker
 g_invoker = Invoker()
