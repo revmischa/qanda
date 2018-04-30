@@ -12,4 +12,4 @@ def lambda_handler(event, context):
         g_model.new_question_from_slack(**args)
 
     else:
-        raise Exception(f'Unknown command {command}')
+        raise Exception(f'Unknown command {cmd}')

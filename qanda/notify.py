@@ -24,9 +24,13 @@ class Notify:
 
         client = None
         team_id = None
+        channel_id = None
+        sender_sub = None
         if 'slack_team_id' in question:
             team_id: str = question['slack_team_id']
+            channel_id: str = question['slack_channel_id']
             client = SlackApp.get_client_for_team_id(team_id)
+            sender_sub = client.get_subscription(channel_id)
 
         for sub in subscribers['Items']:
             if 'phone' in sub:
@@ -35,7 +39,15 @@ class Notify:
             elif 'slack_channel_id' in sub:
                 sub_team_id = sub['slack_team_id']
                 assert client
-                if sub_team_id != team_id:
+
+                # are we sending a cross-slack message?
+                # both sender and recipient must have cross_slack=True in subscription
+                cross_slack = 'cross_slack' in sub and sub['cross_slack']
+                if sender_sub:
+                    # sender subscription must have it set too
+                    cross_slack = cross_slack and 'cross_slack' in sender_sub and sender_sub['cross_slack']
+
+                if not cross_slack and sub_team_id != team_id:  # local/global slack check
                     continue
 
                 if self.notify_slack_of_question(client, sub, question):
