@@ -21,12 +21,23 @@ class Notify:
         # FIXME: paginate
         subscribers = qanda.table.subscriber.scan()  # NB only returns 1MB of results
         notified = 0
+
+        client = None
+        team_id = None
+        if 'slack_team_id' in question:
+            team_id: str = question['slack_team_id']
+            client = SlackApp.get_client_for_team_id(team_id)
+
         for sub in subscribers['Items']:
             if 'phone' in sub:
                 if self.notify_sms_of_question(sub, question):
                     notified += 1
             elif 'slack_channel_id' in sub:
-                if self.notify_slack_of_question(sub, question):
+                sub_team_id = sub['slack_team_id']
+                if sub_team_id != team_id:
+                    continue
+
+                if self.notify_slack_of_question(client, sub, question):
                     notified += 1
             else:
                 log.error("got subscriber but no phone or slack_channel_id")
@@ -59,7 +70,7 @@ class Notify:
         )
         return True
 
-    def notify_slack_of_question(self, subscriber, question):
+    def notify_slack_of_question(self, client, subscriber, question):
         from qanda import g_model
 
         question_body = question['body']
@@ -81,7 +92,6 @@ class Notify:
             is_question_notification=True,
         )
 
-        client = SlackApp.get_client_for_team_id(team_id)
         # post question
         client.api_call(
             "chat.postMessage",

@@ -119,6 +119,8 @@ class SlackApp:
                 return True
 
             # PM
+            # put in queue to process
+            # ...
             self.handle_message_event(evt)
             return True
 
