@@ -172,7 +172,7 @@ class SlackApp:
 
         cross_slack_status_msg = ''
         if subscription:
-            if subscription['cross_slack']:
+            if 'cross_slack' in subscription and subscription['cross_slack']:
                 cross_slack_status_msg += f"You're currently set to get questions from anywhere.\nReply *local* to only get questions from {team_name}"
             else:
                 cross_slack_status_msg += f"You're currently set to only get questions from {team_name}.\nReply *global* to receive questions from random people all over the world.\nWarning: may contain strange, bizarre, or offensive content."
