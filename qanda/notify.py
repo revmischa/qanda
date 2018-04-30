@@ -51,7 +51,7 @@ class Notify:
                 if cross_slack or sub_team_id == team_id:  # local/global slack check
                     log.info(f"sending cross-slack message from {team_id} to {sub_team_id}")
                     # need to get client for destination slack
-                    client = SlackApp(team_id=sub_team_id)
+                    client = SlackApp(team_id=sub_team_id).get_client()
                 else:
                     continue
 
