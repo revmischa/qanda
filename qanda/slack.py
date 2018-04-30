@@ -6,6 +6,7 @@ import logging
 from typing import Optional, Dict
 from slackclient import SlackClient
 import boto3
+import os
 
 log = logging.getLogger(__name__)
 
@@ -130,6 +131,7 @@ class SlackApp:
 
             import pprint
             pprint.pprint(evt)
+            pprint.pprint(os.environ)
             self.handle_message_event(evt)
             return True
 
