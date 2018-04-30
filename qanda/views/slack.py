@@ -1,5 +1,5 @@
 from qanda.slack import SlackSlashcommandSchema, SlackSlashcommandResponseSchema, SlackApp
-from qanda import g_model, app, g_notify
+from qanda import g_model, app, g_notify, invoke_async
 import qanda.table
 from flask_apispec import use_kwargs, marshal_with
 from flask import request, redirect, url_for
@@ -7,7 +7,6 @@ import requests
 from slackclient import SlackClient
 from urllib.parse import urlencode
 import logging
-import boto3
 
 log = logging.getLogger(__name__)
 
@@ -17,6 +16,7 @@ log = logging.getLogger(__name__)
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
     """Slashcommand handler."""
+    invoke_async(func='SLACK_SLASH_FUNCTION', payload=kwargs)
     g_model.new_question_from_slack(**kwargs)
     return {
         "response_type": "in_channel",

@@ -1,12 +1,10 @@
 from marshmallow import fields, Schema
 from flask import request
 import qanda.table
-from qanda import app
+from qanda import app, invoke_async
 import logging
 from typing import Optional, Dict
 from slackclient import SlackClient
-import boto3
-import os
 
 log = logging.getLogger(__name__)
 
@@ -131,7 +129,6 @@ class SlackApp:
 
             import pprint
             pprint.pprint(evt)
-            pprint.pprint(os.environ)
             self.handle_message_event(evt)
             return True
 
@@ -143,18 +140,7 @@ class SlackApp:
 
     def enqueue_event(self, evt_callback):
         """Save event for later processing."""
-        awslambda = boto3.client('lambda')
-        # async invoke a lambda to process this task
-        func_name = app.config.get('SLACK_EVENT_FUNCTION')
-        if not func_name:
-            log.error("didn't have SLACK_EVENT_FUNCTION configured")
-            return
-
-        awslambda.invoke(
-            FunctionName=func_name,
-            InvocationType='Event',
-            Payload=evt_callback,
-        )
+        invoke_async(func='SLACK_EVENT_FUNCTION', payload=evt_callback)
 
     def handle_message_event(self, evt):
         from qanda import g_model

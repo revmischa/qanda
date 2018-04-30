@@ -31,5 +31,6 @@ SLACK_VERIFICATION_TOKEN = get_ssm_param('qanda_slack_verification_token')
 SLACK_OAUTH_REDIRECT_URL = "https://xtx4cyxavc.execute-api.eu-central-1.amazonaws.com/Prod/slack/oauth"
 
 SLACK_EVENT_FUNCTION = os.getenv('SLACK_EVENT_FUNCTION')
+SLACK_SLASH_FUNCTION = os.getenv('SLACK_SLASH_FUNCTION')
 
 WORKSPACE_PERMISSIONS = False  # using new developer preview workspace permissions mode?

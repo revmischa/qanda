@@ -47,4 +47,22 @@ import qanda.views.index
 import qanda.views.slack
 import qanda.views.twilio
 
+
+def invoke_async(func: str, payload=None):
+    """Async invoke a lambda, whose name is in app config under `func`."""
+    import boto3
+    awslambda = boto3.client('lambda')
+
+    # look in app config under func to get name (from cloudformation)
+    func_name = app.config.get(func)
+    if not func_name:
+        log.error(f"can't invoke lambda; don't have {func} configured")
+        return
+
+    return awslambda.invoke(
+        FunctionName=func_name,
+        InvocationType='Event',
+        Payload=payload,
+    )
+
 __all__ = ('g_twil', 'g_notify', 'g_model', 'app')

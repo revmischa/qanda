@@ -41,6 +41,7 @@ Resources:
       Environment:
         Variables:
           SLACK_EVENT_FUNCTION: !Ref SlackEvent
+          SLACK_SLASH_FUNCTION: !Ref SlackSlashcommand
       Events:
         FlaskProxy:
           Type: Api
