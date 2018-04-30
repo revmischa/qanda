@@ -48,7 +48,11 @@ class Notify:
                     # sender subscription must have it set too
                     cross_slack = cross_slack and 'cross_slack' in sender_sub and sender_sub['cross_slack']
 
-                if not cross_slack and sub_team_id != team_id:  # local/global slack check
+                if cross_slack or sub_team_id == team_id:  # local/global slack check
+                    log.info(f"sending cross-slack message from {team_id} to {sub_team_id}")
+                    # need to get client for destination slack
+                    client = SlackApp(team_id=sub_team_id)
+                else:
                     continue
 
                 if self.notify_slack_of_question(client, sub, question):
