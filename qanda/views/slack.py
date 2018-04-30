@@ -51,8 +51,9 @@ def slack_event():
     except Exception as ex:
         log.exception(ex)
 
-    # returning 200 for now no matter what
-    return "not ok", 200
+    # something bad happened
+    # (will retry)
+    return "not ok", 500
 
 
 def get_oauth_redirect_url():

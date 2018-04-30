@@ -121,6 +121,11 @@ class SlackApp:
             # PM
             # put in queue to process
             # ...
+            try:
+                self.enqueue_event(evt_callback)
+            except Exception as ex:
+                log.exception(str(ex))
+                # return False
 
             import pprint
             pprint.pprint(evt)
@@ -132,6 +137,21 @@ class SlackApp:
         pprint.pprint(evt)
         log.error(f"unknown event {type}")
         return False
+
+    def enqueue_event(self, evt_callback):
+        """Save event for later processing."""
+        awslambda = boto3.client('lambda')
+        # async invoke a lambda to process this task
+        func_name = app.config.get('SLACK_EVENT_FUNCTION')
+        if not func_name:
+            log.error("didn't have SLACK_EVENT_FUNCTION configured")
+            return
+
+        awslambda.invoke(
+            FunctionName=func_name,
+            InvocationType='Event',
+            payload=evt_callback,
+        )
 
     def handle_message_event(self, evt):
         from qanda import g_model

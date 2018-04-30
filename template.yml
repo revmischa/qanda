@@ -8,6 +8,17 @@ Parameters:
     Type: String
     Description: CodeStar projectId used to associate new resources to team members
 Resources:
+  # slack event processor
+  SlackEvent:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 10
+      Handler: qanda/function/slack_event.lambda_handler
+      Runtime: python3.6
+      Role:
+        Fn::ImportValue:
+          !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
+  # webapp
   Flask:
     Type: AWS::Serverless::Function
     Properties:
@@ -19,7 +30,7 @@ Resources:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
       Environment:
         Variables:
-          MESSAGE_TABLE_NAME: !Ref MessageTable
+          SLACK_EVENT_FUNCTION: !Ref SlackEvent
       Events:
         FlaskProxy:
           Type: Api
