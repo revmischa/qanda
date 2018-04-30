@@ -1,5 +1,6 @@
 import os
 import sys
+import pickle
 vendor_path = os.path.abspath(os.path.join(__file__, '..', '..', 'vendor'))
 lib_path = os.path.abspath(os.path.join(__file__, '..', '..'))
 sys.path.append(lib_path)
@@ -48,10 +49,14 @@ def invoke_async(func: str, payload=None):
         log.error(f"can't invoke lambda; don't have {func} configured")
         return
 
+    payload_encoded = payload
+    if payload:
+        payload_encoded = pickle.dumps(payload)
+
     return awslambda.invoke(
         FunctionName=func_name,
         InvocationType='Event',
-        Payload=payload,
+        Payload=payload_encoded,
     )
 
 ###
