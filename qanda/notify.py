@@ -29,8 +29,9 @@ class Notify:
         if 'slack_team_id' in question:
             team_id: str = question['slack_team_id']
             channel_id: str = question['slack_channel_id']
-            client = SlackApp.get_client_for_team_id(team_id)
-            sender_sub = client.get_subscription(channel_id)
+            slack = SlackApp(team_id=team_id)
+            client = slack.get_client()
+            sender_sub = slack.get_subscription(channel_id)
 
         for sub in subscribers['Items']:
             if 'phone' in sub:

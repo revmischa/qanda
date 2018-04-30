@@ -166,8 +166,6 @@ class SlackApp:
 
         # look up team name
         team_info = self.get_team_info()
-        import pprint
-        pprint.pprint(team_info)
         team_name = team_info['name'] if 'name' in team_info else 'your team'
 
         cross_slack_status_msg = ''
@@ -204,7 +202,7 @@ class SlackApp:
             # enable global subscription
             subscription['cross_slack'] = True
             qanda.table.subscriber.put_item(Item=subscription)
-            reply(text=f"Awesome! Now you'll get all questions, regardless of their origin.\nBe prepared to see some offensive and terrible things.\nReply *local* to return to the hugbox of {team_name} at any time.")
+            reply(text=f"Awesome! Now you'll get all questions, regardless of their origin. :world_map:\nBe prepared to see some offensive and terrible things.\nReply *local* to return to the hugbox of {team_name} at any time.")
 
         elif bodylc.startswith('local'):
             if not subscription:
@@ -213,7 +211,7 @@ class SlackApp:
             # disable global subscription
             subscription['cross_slack'] = False
             qanda.table.subscriber.put_item(Item=subscription)
-            reply(text=f"Alrightie! You will now only get questions from {team_name}\nReply *global* to get messages from anywhere.")
+            reply(text=f"Alrightie! You will now only get questions from {team_name}.\nReply *global* to get messages from anywhere.")
 
         elif bodylc.startswith('unsubscribe') or bodylc.startswith('stop'):
             # unsubscribe
