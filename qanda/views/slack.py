@@ -16,8 +16,10 @@ log = logging.getLogger(__name__)
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
     """Slashcommand handler."""
-    g_invoker.invoke_async(func='SLACK_SLASH_FUNCTION', payload=kwargs)
-    g_model.new_question_from_slack(**kwargs)
+    g_invoker.invoke_async(func='SLACK_SLASH_FUNCTION', payload=dict(
+        slack_args=kwargs,
+        command='ask',
+    ))
     return {
         "response_type": "in_channel",
         'text': "Your question has been asked. Please wait for random humans to answer it."
@@ -48,6 +50,7 @@ def slack_event():
         if type == 'message':
             if 'bot_id' in evt:
                 # this is a message FROM the bot... don't care since we sent it
+                print("skipping bot_id message")
                 return "ok"
 
     # process event async
