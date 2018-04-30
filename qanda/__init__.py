@@ -34,6 +34,8 @@ app.config.from_pyfile('config.py', silent=False)
 # optional local config
 app.config.from_pyfile('local.cfg', silent=True)
 
+from qanda.invoker import Invoker
+g_invoker = Invoker()
 
 from qanda.twil import Twil
 g_twil = Twil()
@@ -43,9 +45,6 @@ g_notify = Notify()
 
 from qanda.model import Model
 g_model = Model()
-
-from qanda.invoker import Invoker
-g_invoker = Invoker()
 
 import qanda.views.index
 import qanda.views.slack
