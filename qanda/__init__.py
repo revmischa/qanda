@@ -1,6 +1,5 @@
 import os
 import sys
-import pickle
 vendor_path = os.path.abspath(os.path.join(__file__, '..', '..', 'vendor'))
 lib_path = os.path.abspath(os.path.join(__file__, '..', '..'))
 sys.path.append(lib_path)
@@ -36,31 +35,6 @@ app.config.from_pyfile('config.py', silent=False)
 app.config.from_pyfile('local.cfg', silent=True)
 
 
-###
-
-def invoke_async(func: str, payload=None):
-    """Async invoke a lambda, whose name is in app config under `func`."""
-    import boto3
-    awslambda = boto3.client('lambda')
-
-    # look in app config under func to get name (from cloudformation)
-    func_name = app.config.get(func)
-    if not func_name:
-        log.error(f"can't invoke lambda; don't have {func} configured")
-        return
-
-    payload_encoded = payload
-    if payload:
-        payload_encoded = pickle.dumps(payload)
-
-    return awslambda.invoke(
-        FunctionName=func_name,
-        InvocationType='Event',
-        Payload=payload_encoded,
-    )
-
-###
-
 from qanda.twil import Twil
 g_twil = Twil()
 
@@ -70,8 +44,11 @@ g_notify = Notify()
 from qanda.model import Model
 g_model = Model()
 
+from qanda.invoker import Invoker
+g_invoker = Invoker()
+
 import qanda.views.index
 import qanda.views.slack
 import qanda.views.twilio
 
-__all__ = ('g_twil', 'g_notify', 'g_model', 'app')
+__all__ = ('g_twil', 'g_notify', 'g_model', 'g_invoker', 'app')

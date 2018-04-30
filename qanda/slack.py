@@ -1,7 +1,7 @@
 from marshmallow import fields, Schema
 from flask import request
 import qanda.table
-from qanda import app, invoke_async
+from qanda import app, g_invoker
 import logging
 from typing import Optional, Dict
 from slackclient import SlackClient
@@ -140,7 +140,7 @@ class SlackApp:
 
     def enqueue_event(self, evt_callback):
         """Save event for later processing."""
-        invoke_async(func='SLACK_EVENT_FUNCTION', payload=evt_callback)
+        g_invoker.invoke_async(func='SLACK_EVENT_FUNCTION', payload=evt_callback)
 
     def handle_message_event(self, evt):
         from qanda import g_model
