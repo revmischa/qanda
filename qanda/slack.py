@@ -153,7 +153,7 @@ class SlackApp:
         awslambda.invoke(
             FunctionName=func_name,
             InvocationType='Event',
-            payload=evt_callback,
+            Payload=evt_callback,
         )
 
     def handle_message_event(self, evt):
