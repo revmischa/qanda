@@ -166,16 +166,21 @@ class SlackApp:
 
         # look up team name
         team_info = self.get_team_info()
-        team_name = team_info['name']
+        import pprint
+        pprint.pprint(team_info)
+        team_name = team_info['name'] if 'name' in team_info else 'your team'
+
+        cross_slack_status_msg = ''
+        if subscription:
+            if subscription['cross_slack']:
+                cross_slack_status_msg += f"You're currently set to get questions from anywhere.\nReply *local* to only get questions from {team_name}"
+            else:
+                cross_slack_status_msg += f"You're currently set to only get questions from {team_name}.\nReply *global* to receive questions from random people all over the world.\nWarning: may contain strange, bizarre, or offensive content."
 
         if bodylc.startswith('subscribe'):
             if subscription:
                 msg = "You're already subscribed to get new questions.\n"
-                if subscription['cross_slack']:
-                    msg += f"You're currently set to get questions from anywhere.\nReply *local* to only get questions from {team_name}"
-                else:
-                    msg += f"You're currently set to only get questions from {team_name}.\nReply *global* to receive questions from random people all over the world.\nWarning: may contain strange, bizarre, or offensive content."
-
+                msg += cross_slack_status_msg
                 reply(text=msg)
             # subscribe user
             sub_id = f"{self.team_id}|{channel_id}"
