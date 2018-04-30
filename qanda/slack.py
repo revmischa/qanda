@@ -5,6 +5,7 @@ from qanda import app
 import logging
 from typing import Optional, Dict
 from slackclient import SlackClient
+import boto3
 
 log = logging.getLogger(__name__)
 

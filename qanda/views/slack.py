@@ -7,6 +7,7 @@ import requests
 from slackclient import SlackClient
 from urllib.parse import urlencode
 import logging
+import boto3
 
 log = logging.getLogger(__name__)
 

@@ -1,11 +1,8 @@
-"""Process a slack event."""
+"""Process a slack slashcommand."""
 from pprint import pprint
 
 
 def lambda_handler(event, context):
-    print("evt got invoked!")
+    print("/ got invoked!")
     pprint(event)
     pprint(context)
-
-
-3

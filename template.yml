@@ -18,6 +18,16 @@ Resources:
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
+  # slack slashcommand processor
+  SlackSlashcommand:
+    Type: AWS::Serverless::Function
+    Properties:
+      Timeout: 10
+      Handler: qanda/function/slack_slashcommand.lambda_handler
+      Runtime: python3.6
+      Role:
+        Fn::ImportValue:
+          !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
   # webapp
   Flask:
     Type: AWS::Serverless::Function
