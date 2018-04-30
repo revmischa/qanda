@@ -179,7 +179,7 @@ class SlackApp:
 
         if bodylc.startswith('subscribe'):
             if subscription:
-                msg = "You're already subscribed to get new questions.\n"
+                msg = "You're already subscribed to get new questions.\n\n"
                 msg += cross_slack_status_msg
                 reply(text=msg)
                 return
@@ -251,7 +251,7 @@ class SlackApp:
             # unknown
             save_message()
             log.info(f"got unfamiliar IM command: {body}")
-            reply(text=f"So sorry.. not sure what you're asking {LOGO}\n{USAGE}")
+            reply(text=f"So sorry.. not sure what you're asking {LOGO}\n{USAGE}\n\n{cross_slack_status_msg}")
 
     def get_subscription(self, channel_id):
         sub_id = f"{self.team_id}|{channel_id}"
@@ -261,4 +261,8 @@ class SlackApp:
     def get_team_info(self, client=None):
         if not client:
             client = self.get_client()
-        return client.api_call('team.info')['team']
+        try:
+            return client.api_call('team.info')['team']
+        except Exception as ex:
+            log.warning(f"Failed to get team.info for team {self.team_id} - {ex}")
+        return {}

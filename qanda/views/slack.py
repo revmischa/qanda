@@ -78,7 +78,7 @@ def slack_install():
     url = 'https://slack.com/oauth/authorize?' + urlencode(
         dict(
             client_id=app.config['SLACK_OAUTH_CLIENT_ID'],
-            scope=f'commands identity.team channels:history im:history {chat_write} im:write reactions:write',
+            scope=f'commands channels:history im:history {chat_write} im:write reactions:write',
             redirect_uri=app.config['SLACK_OAUTH_REDIRECT_URL'],
             _external=True,
         ))
