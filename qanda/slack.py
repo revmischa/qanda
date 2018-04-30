@@ -182,6 +182,7 @@ class SlackApp:
                 msg = "You're already subscribed to get new questions.\n"
                 msg += cross_slack_status_msg
                 reply(text=msg)
+                return
             # subscribe user
             sub_id = f"{self.team_id}|{channel_id}"
             qanda.table.subscriber.put_item(
@@ -192,6 +193,7 @@ class SlackApp:
                     slack_user_id=user_id,
                     body=body,
                 ))
+
             reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscribe\" at any time to shut me up {LOGO}")
             log.info("new slack subscriber!")
 
@@ -259,4 +261,4 @@ class SlackApp:
     def get_team_info(self, client=None):
         if not client:
             client = self.get_client()
-        return client.api_call('team.info')
+        return client.api_call('team.info')['team']
