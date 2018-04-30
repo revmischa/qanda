@@ -121,6 +121,9 @@ class SlackApp:
             # PM
             # put in queue to process
             # ...
+
+            import pprint
+            pprint.pprint(evt)
             self.handle_message_event(evt)
             return True
 

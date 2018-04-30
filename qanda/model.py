@@ -109,6 +109,7 @@ class Model:
             body=body,
             question_id=q['id'],
             is_question=True,
+            in_channel=True,  # assuming this is a public question
             **slack_params,
         )
 
