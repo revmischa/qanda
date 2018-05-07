@@ -12,10 +12,6 @@ Once you've [added the app](https://slack.com/oauth/authorize?client_id=30325029
 To answer questions people ask, message the bot "subscribe".
 
 
-## Cross-slack
-By default you will only see questions and answers from your slack team. If you want to talk to people outside of your team you can enable this feature by messaging @QandA with the command "*global*".
-
-
 # Private questions:
 ![ask1](screenshots/a1.png)
 

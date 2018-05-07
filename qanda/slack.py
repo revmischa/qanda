@@ -168,8 +168,10 @@ class SlackApp:
         team_info = self.get_team_info()
         team_name = team_info['name'] if 'name' in team_info else 'your team'
 
+        global_enabled = False
+
         cross_slack_status_msg = ''
-        if subscription:
+        if global_enabled and subscription:
             if 'cross_slack' in subscription and subscription['cross_slack']:
                 cross_slack_status_msg += f"You're currently set to get questions from anywhere.\nReply *local* to only get questions from {team_name}"
             else:
@@ -195,7 +197,7 @@ class SlackApp:
             reply(text=f"Ok! You'll get notifed of new questions. Message me \"unsubscribe\" at any time to shut me up {LOGO}")
             log.info("new slack subscriber!")
 
-        elif bodylc.startswith('global'):
+        elif bodylc.startswith('global') and global_enabled:
             if not subscription:
                 return reply(text="You're not subscribed to receive messages right now.")
 
@@ -204,7 +206,7 @@ class SlackApp:
             qanda.table.subscriber.put_item(Item=subscription)
             reply(text=f"Awesome! Now you'll get all questions, regardless of their origin. :world_map:\nBe prepared to see some offensive and terrible things.\nReply *local* to return to the hugbox of {team_name} at any time.")
 
-        elif bodylc.startswith('local'):
+        elif bodylc.startswith('local') and global_enabled:
             if not subscription:
                 return reply(text="You're not subscribed to receive messages right now.")
 
