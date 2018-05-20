@@ -1,0 +1,7 @@
+* Privacy Policy
+** Data Storage
+*** Data involving messages to and from the bot user are stored for purposes of identifying questions asked and answers received, as well as subscription status information by user ID and slack team ID.
+** Sharing
+*** This application does not share Personally Identifiable Information (PII) or user or request history with any third parties.
+
+You may request all records of your data be deleted if you email ~privacy@mvstg.biz~ with a suitable request.
