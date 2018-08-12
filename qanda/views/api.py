@@ -51,7 +51,7 @@ def api_list_questions(start_key: str=None, source: str=None) -> List[Dict]:
 @marshal_with(QuestionSchema(strict=True))
 def api_question_get(pk: str) -> Dict:
     """Fetch a question (and answers)."""
-    question = g_model.get_question(id=pk, with_answers=True)
+    question = g_model.get_question(id=pk)
     return question
 
 
@@ -59,6 +59,6 @@ def api_question_get(pk: str) -> Dict:
 @use_kwargs(AnswerSchema(strict=True))
 def api_question_answer_post(pk: str, body: str) -> Dict:
     """Fetch a question (and answers)."""
-    question = g_model.get_question(id=pk, with_answers=True)
+    question = g_model.get_question(id=pk)
     g_model.new_answer_from_web(body=body, remote_ip=request.remote_addr, question=question)
     return "ok"

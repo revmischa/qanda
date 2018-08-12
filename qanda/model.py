@@ -74,8 +74,7 @@ class Model:
             'message_id': answer_msg['id'],
             'question_id': question['id'],
         }
-        self.answer.put_item(Item=answer)  # old
-        return self.question_append_answer(question, answer)  # new
+        return self.question_append_answer(question, answer)
 
     def new_question_from_web(self,
                               body: str,
@@ -88,8 +87,6 @@ class Model:
             **self.id_and_created(),
             source='web',
         )
-
-        # old
         self.question.put_item(Item=q)
 
     def new_question_from_slack(self, body: str, channel_id: str,
@@ -177,10 +174,6 @@ class Model:
         }
         return self.question_append_answer(question, answer)
 
-        # old:
-        self.answer.put_item(Item=answer)
-        return answer
-
     def new_answer_from_slack_pm(self, body: str, user_id: str, team_id: str, channel_id: str) -> bool:
         answer_message = self.new_message(
             from_=user_id,
@@ -241,24 +234,9 @@ class Model:
         # notify asker of the answer
         g_notify.notify_of_answer(answer)
 
-    def get_question(self, id: str, with_answers=False) -> Dict:
+    def get_question(self, id: str) -> Dict:
         question = self.question.get_item(Key={'id': id})['Item']
-
-        # old
-        if with_answers and 'answers' not in question:
-            question['answers'] = self.get_answers(for_question=question)
-
         return question
-
-    def get_answers(self, for_question) -> List[Dict]:
-        """Load answers for a question."""
-        query_params = dict(
-            IndexName='question_id-created-index',  # FIXME: put in CF
-            ScanIndexForward=True,
-            KeyConditionExpression=Key('question_id').eq(for_question['id']),  # filter by source
-        )
-        res = self.answer.query(**query_params)
-        return res['Items']
 
     def get_questions(self, source: str='web', start_key: Dict=None) -> Dict:
         """Get latest questions.
