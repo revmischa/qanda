@@ -212,6 +212,23 @@ class Model:
         # notify asker of the answer
         g_notify.notify_of_answer(answer)
 
+    def get_question(self, id: str, with_answers=False) -> Dict:
+        question = self.question.get_item(Key={'id': id})['Item']
+        if with_answers:
+            question['answers'] = self.get_answers(for_question=question)
+
+        return question
+
+    def get_answers(self, for_question) -> List[Dict]:
+        """Load answers for a question."""
+        query_params = dict(
+            IndexName='question_id-created-index',  # FIXME: put in CF
+            ScanIndexForward=True,
+            KeyConditionExpression=Key('question_id').eq(for_question['id']),  # filter by source
+        )
+        res = self.answer.query(**query_params)
+        return res['Items']
+
     def get_questions(self, source: str='web', start_key: Dict=None) -> Dict:
         """Get latest questions.
 
