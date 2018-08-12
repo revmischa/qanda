@@ -34,5 +34,5 @@ def api_list_questions(start_key: str=None, source: str=None):
     res = g_model.get_questions(source=source, start_key=start_key)
     return dict(
         questions=res['Items'],
-        start_key=json.dumps(res['LastEvaluatedKey']),
+        start_key=json.dumps(res['LastEvaluatedKey']) if 'LastEvaluatedKey' in res else None,
     )
