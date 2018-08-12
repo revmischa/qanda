@@ -7,8 +7,8 @@ from typing import List, Dict
 
 
 class AnswerSchema(Schema):
-    question_id = fields.Str()
-    body = fields.Str()
+    body = fields.Str(required=True)
+    question_id = fields.Str(dump_only=True)
     id = fields.Str(dump_only=True)
     created = fields.Int(dump_only=True)
 
@@ -49,9 +49,19 @@ def api_list_questions(start_key: str=None, source: str=None) -> List[Dict]:
         start_key=json.dumps(res['LastEvaluatedKey']) if 'LastEvaluatedKey' in res else None,
     )
 
+
 @app.route('/api/question/<string:pk>', methods=['GET'])
 @marshal_with(QuestionWithAnswersSchema(strict=True))
 def api_question_get(pk: str) -> Dict:
     """Fetch a question (and answers)."""
     question = g_model.get_question(id=pk, with_answers=True)
     return question
+
+
+@app.route('/api/question/<string:pk>/reply', methods=['POST'])
+@use_kwargs(AnswerSchema(strict=True))
+def api_question_answer_post(pk: str, body: str) -> Dict:
+    """Fetch a question (and answers)."""
+    question = g_model.get_question(id=pk, with_answers=True)
+    g_model.new_answer_from_web(body=body, remote_ip=request.remote_addr, question=question)
+    return "ok"

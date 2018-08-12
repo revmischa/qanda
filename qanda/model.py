@@ -152,6 +152,17 @@ class Model:
         items = res['Items']
         return items[0]  # should be newest
 
+    def new_answer_from_web(self, body: str, question: Dict, remote_ip: str=None) -> bool:
+        answer = {
+            **self.id_and_created(),
+            'body': body,
+            'question_id': question['id'],
+            'source': 'web',
+            'remote_ip': remote_ip,
+        }
+        self.answer.put_item(Item=answer)
+        return answer
+
     def new_answer_from_slack_pm(self, body: str, user_id: str, team_id: str, channel_id: str) -> bool:
         answer_message = self.new_message(
             from_=user_id,
@@ -236,7 +247,7 @@ class Model:
 
         """
         query_params = dict(
-            Limit=30,
+            Limit=100,
             IndexName='source-created-index',  # FIXME: put in CF
             ScanIndexForward=False,  # give us most recent first
             KeyConditionExpression=Key('source').eq(source),  # filter by source
