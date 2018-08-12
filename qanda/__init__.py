@@ -5,6 +5,8 @@ lib_path = os.path.abspath(os.path.join(__file__, '..', '..'))
 sys.path.append(lib_path)
 sys.path.append(vendor_path)
 from flask import Flask
+from flask_cors import CORS
+
 import logging
 from slack_logger import SlackHandler, SlackFormatter
 
@@ -44,6 +46,8 @@ app.config.from_pyfile('config.py', silent=False)
 # optional local config
 app.config.from_pyfile('local.cfg', silent=True)
 log_setup(app)
+CORS(app)
+
 
 from qanda.invoker import Invoker
 g_invoker = Invoker()

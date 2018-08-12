@@ -16,6 +16,7 @@ class QuestionListSchema(Schema):
     source = fields.Str(missing='web')
     questions = fields.Nested(QuestionSchema, many=True)
 
+
 @app.route('/api/question/ask', methods=['POST'])
 @use_kwargs(QuestionSchema(strict=True))
 def api_question_ask(body, tags=[]):
