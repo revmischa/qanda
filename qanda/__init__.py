@@ -60,5 +60,6 @@ g_model = Model()
 import qanda.views.index
 import qanda.views.slack
 import qanda.views.twilio
+import qanda.views.api
 
 __all__ = ('g_twil', 'g_notify', 'g_model', 'g_invoker', 'app')

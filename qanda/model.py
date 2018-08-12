@@ -1,12 +1,15 @@
 import uuid
 import time
 from qanda import g_twil, g_notify
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, List
 from boto3.dynamodb.conditions import Key, Attr
 import logging
 import qanda.table
 
 log = logging.getLogger(__name__)
+
+
+Question = Dict
 
 
 class Model:
@@ -73,6 +76,19 @@ class Model:
         }
         self.answer.put_item(Item=answer)
         return answer
+
+    def new_question_from_web(self,
+                              body: str,
+                              remote_ip: str=None) -> None:
+        """Record and publish question asked from web form."""
+        # record question
+        q = dict(
+            body=body,
+            remote_ip=remote_ip,
+            **self.id_and_created(),
+            source='web',
+        )
+        self.question.put_item(Item=q)
 
     def new_question_from_slack(self, body: str, channel_id: str,
                                 user_id: str, team_id: str, team_domain: str=None,
@@ -195,3 +211,63 @@ class Model:
 
         # notify asker of the answer
         g_notify.notify_of_answer(answer)
+
+    def get_questions(self, source: str='web', start_key: Dict=None) -> Dict:
+        """Get latest questions.
+
+        Returns:
+
+        """
+        query_params = dict(
+            Limit=30,
+            IndexName='source-created-index',  # FIXME: put in CF
+            ScanIndexForward=False,  # give us most recent first
+            KeyConditionExpression=Key('source').eq(source),  # filter by source
+        )
+
+        if start_key:
+            query_params['ExclusiveStartKey'] = start_key
+
+        res = self.question.query(**query_params)
+
+        return res
+
+"""
+get_questions:
+ 'Items': [{'body': 'What are the differences between HTTP and HTTPS ?',
+            'created': Decimal('1534024050'),
+            'id': '5fa0f742-ca28-44c2-aa67-72b4047d621b',
+            'slack_channel_id': 'CC75SLZ4M',
+            'slack_channel_name': 'qa-test',
+            'slack_team_domain': 'tahmazlar',
+            'slack_team_id': 'T7WBBHJ3F',
+            'slack_user_id': 'U7W4Z3DJP',
+            'slack_user_name': 'sarpdoruk',
+            'source': 'slack'},
+           {'body': 'what time is it?',
+            'created': Decimal('1533753429'),
+            'id': 'd74b4a90-1c81-4b1e-b98b-b96951a8961d',
+            'slack_channel_id': 'CC577FN5B',
+            'slack_channel_name': 'better_than_webex',
+            'slack_team_domain': 'newchaterrday',
+            'slack_team_id': 'TC4BFUE6L',
+            'slack_user_id': 'UC6CJA0DU',
+            'slack_user_name': 'jeremiah.belz',
+            'source': 'slack'}],
+ 'LastEvaluatedKey': {'created': Decimal('1533753429'),
+                      'id': 'd74b4a90-1c81-4b1e-b98b-b96951a8961d',
+                      'source': 'slack'},
+ 'ResponseMetadata': {'HTTPHeaders': {'connection': 'keep-alive',
+                                      'content-length': '916',
+                                      'content-type': 'application/x-amz-json-1.0',
+                                      'date': 'Sun, 12 Aug 2018 11:28:40 GMT',
+                                      'server': 'Server',
+                                      'x-amz-crc32': '3304068867',
+                                      'x-amzn-requestid': 'LEM3OQISK00BQR3UHD0BLRTUTNVV4KQNSO5AEMVJF66Q9ASUAAJG'},
+                      'HTTPStatusCode': 200,
+                      'RequestId': 'LEM3OQISK00BQR3UHD0BLRTUTNVV4KQNSO5AEMVJF66Q9ASUAAJG',
+                      'RetryAttempts': 0},
+ 'ScannedCount': 2}
+
+
+"""
