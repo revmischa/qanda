@@ -3,5 +3,5 @@ import awsgi
 
 
 def lambda_handler(event, context):
-    # pprint(event)
+    """Main entry point for API gateway."""
     return awsgi.response(app, event, context)
