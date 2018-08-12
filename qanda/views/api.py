@@ -9,6 +9,7 @@ class QuestionSchema(Schema):
     body = fields.Str(required=True)
     tags = fields.Str(many=True, required=False)
     created = fields.Int(dump_only=True)
+    id = fields.Str(dump_only=True)
 
 
 class QuestionListSchema(Schema):
