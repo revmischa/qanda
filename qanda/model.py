@@ -74,8 +74,8 @@ class Model:
             'message_id': answer_msg['id'],
             'question_id': question['id'],
         }
-        self.answer.put_item(Item=answer)
-        return answer
+        self.answer.put_item(Item=answer)  # old
+        return self.question_append_answer(question, answer)  # new
 
     def new_question_from_web(self,
                               body: str,
@@ -88,6 +88,8 @@ class Model:
             **self.id_and_created(),
             source='web',
         )
+
+        # old
         self.question.put_item(Item=q)
 
     def new_question_from_slack(self, body: str, channel_id: str,
@@ -152,7 +154,20 @@ class Model:
         items = res['Items']
         return items[0]  # should be newest
 
-    def new_answer_from_web(self, body: str, question: Dict, remote_ip: str=None) -> bool:
+    def question_append_answer(self, question: Dict, answer: Dict) -> Dict:
+        # add answer to 'answers' field
+        res = self.question.update_item(
+            Key={'id': question['id']},
+            AttributeUpdates={
+                'answers': {
+                    'Value': [answer],
+                    'Action': 'ADD',
+                }
+            },
+        )
+        return res
+
+    def new_answer_from_web(self, body: str, question: Dict, remote_ip: str=None) -> Dict:
         answer = {
             **self.id_and_created(),
             'body': body,
@@ -160,6 +175,9 @@ class Model:
             'source': 'web',
             'remote_ip': remote_ip,
         }
+        return self.question_append_answer(question, answer)
+
+        # old:
         self.answer.put_item(Item=answer)
         return answer
 
@@ -225,7 +243,9 @@ class Model:
 
     def get_question(self, id: str, with_answers=False) -> Dict:
         question = self.question.get_item(Key={'id': id})['Item']
-        if with_answers:
+
+        # old
+        if with_answers and 'answers' not in question:
             question['answers'] = self.get_answers(for_question=question)
 
         return question

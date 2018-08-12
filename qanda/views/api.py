@@ -18,9 +18,6 @@ class QuestionSchema(Schema):
     tags = fields.Str(many=True, required=False)
     created = fields.Int(dump_only=True)
     id = fields.Str(dump_only=True)
-
-
-class QuestionWithAnswersSchema(QuestionSchema):
     answers = fields.Nested(AnswerSchema, many=True)
 
 class QuestionListSchema(Schema):
@@ -51,7 +48,7 @@ def api_list_questions(start_key: str=None, source: str=None) -> List[Dict]:
 
 
 @app.route('/api/question/<string:pk>', methods=['GET'])
-@marshal_with(QuestionWithAnswersSchema(strict=True))
+@marshal_with(QuestionSchema(strict=True))
 def api_question_get(pk: str) -> Dict:
     """Fetch a question (and answers)."""
     question = g_model.get_question(id=pk, with_answers=True)
