@@ -17,9 +17,10 @@ class Model:
         # conveniences
         self.message = qanda.table.message
         self.question = qanda.table.question
-        self.answer = qanda.table.answer
+        self.answer = qanda.table.answer  # to delete
         self.subscriber = qanda.table.subscriber
         self.auth_token = qanda.table.auth_token
+        self.client = qanda.table.dynamodb
 
     def make_id(self) -> str:
         return str(uuid.uuid4())
@@ -31,6 +32,21 @@ class Model:
             id=id_,
             created=int(time.time()),
         )
+
+    def get_questions_by_id(self, question_ids: List[str]) -> List[Dict]:
+        """Fetch a bunch of questions at once."""
+        # FIXME: this is limited to 100 items for now
+        # https://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_get_item
+        keys = [{'id': qid} for qid in question_ids]
+        print(keys)
+        res = self.client.batch_get_item(
+            RequestItems={
+                'qanda.question': {
+                    'Keys': keys,
+                }
+            }
+        )
+        return res['Responses']['qanda.question']
 
     def save_slack_tokens(self, token_res):
         """Store OAuth response tokens from finished Slack OAuth flow."""
