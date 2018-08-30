@@ -26,7 +26,7 @@ class QuestionListSchema(Schema):
     questions = fields.Nested(QuestionSchema, many=True)
 
 class QuestionBatchLookupSchema(Schema):
-    ids = fields.List(fields.Int)
+    ids = fields.List(fields.Str, load_only=True)
 
 
 @app.route('/api/question/ask', methods=['POST'])

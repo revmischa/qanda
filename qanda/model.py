@@ -38,7 +38,6 @@ class Model:
         # FIXME: this is limited to 100 items for now
         # https://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#DynamoDB.Client.batch_get_item
         keys = [{'id': qid} for qid in question_ids]
-        print(keys)
         res = self.client.batch_get_item(
             RequestItems={
                 'qanda.question': {
