@@ -93,7 +93,7 @@ class Model:
 
     def new_question_from_web(self,
                               body: str,
-                              remote_ip: str=None) -> None:
+                              remote_ip: str=None) -> Question:
         """Record and publish question asked from web form."""
         # record question
         q = dict(
@@ -103,6 +103,7 @@ class Model:
             source='web',
         )
         self.question.put_item(Item=q)
+        return q
 
     def new_question_from_slack(self, body: str, channel_id: str,
                                 user_id: str, team_id: str, team_domain: str=None,

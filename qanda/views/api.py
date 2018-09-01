@@ -31,10 +31,11 @@ class QuestionBatchLookupSchema(Schema):
 
 @app.route('/api/question/ask', methods=['POST'])
 @use_kwargs(QuestionSchema(strict=True))
+@marshal_with(QuestionSchema(strict=True))
 def api_question_ask(body, tags=[]):
     """Ask a question from the web."""
-    g_model.new_question_from_web(body=body, remote_ip=request.remote_addr)
-    return f"question asked!"
+    q = g_model.new_question_from_web(body=body, remote_ip=request.remote_addr)
+    return q
 
 
 @app.route('/api/question', methods=['GET'])
