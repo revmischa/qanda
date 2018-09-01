@@ -45,7 +45,10 @@ class Model:
                 }
             }
         )
-        return res['Responses']['qanda.question']
+        questions = res['Responses']['qanda.question']
+        # sort by date
+        questions = sorted(questions, key=lambda q: q['created'])
+        return questions
 
     def save_slack_tokens(self, token_res):
         """Store OAuth response tokens from finished Slack OAuth flow."""
