@@ -264,7 +264,7 @@ class Model:
 
         """
         query_params = dict(
-            Limit=100,
+            Limit=4,
             IndexName='source-created-index',  # FIXME: put in CF
             ScanIndexForward=False,  # give us most recent first
             KeyConditionExpression=Key('source').eq(source),  # filter by source

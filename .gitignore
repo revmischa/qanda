@@ -2,4 +2,4 @@ __pycache__
 *.pyc
 qanda/local.cfg
 .ipynb_checkpoints
-SlackClient.ipynb
+*.ipynb
