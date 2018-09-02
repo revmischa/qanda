@@ -4,6 +4,7 @@ from flask_apispec import use_kwargs, marshal_with
 from marshmallow import fields, Schema
 import simplejson as json  # for handling Decimal types from dynamodb
 from typing import List, Dict, Any
+import requests
 
 
 class AnswerSchema(Schema):
@@ -77,3 +78,24 @@ def api_question_answer_post(pk: str, body: str) -> str:
     question = g_model.get_question(id=pk)
     g_model.new_answer_from_web(body=body, remote_ip=request.remote_addr, question=question)
     return "ok"
+
+
+class ContactSchema(Schema):
+    name = fields.Str()
+    email = fields.Str()
+    message = fields.Str(required=True)
+
+
+@app.route('/api/contact', methods=['POST'])
+@use_kwargs(ContactSchema(strict=True))
+def api_contact(message: str, name: str=None, email: str=None) -> None:
+    """Contact form handler."""
+    cstr = f"""Contact form!
+Name: {name}
+Email: {email}
+{message}"""
+    slack_log_endpoint = app.config.get('SLACK_LOG_ENDPOINT')
+    requests.post(
+        slack_log_endpoint,
+        data=json.dumps({'text': cstr}),
+    )
