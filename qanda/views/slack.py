@@ -114,4 +114,4 @@ def slack_oauth():
 
     # save
     g_model.save_slack_tokens(auth_response)
-    return redirect('https://github.com/revmischa/qanda#ask-a-question-answer-a-question')
+    return redirect('http://www.appqanda.com/slack')
