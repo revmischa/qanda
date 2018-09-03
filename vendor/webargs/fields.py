@@ -9,23 +9,21 @@ where to parse the request argument from. ::
 
     args = {
         'active': fields.Bool(location='query')
-        'content_type': fields.Str(load_from='Content-Type',
+        'content_type': fields.Str(data_key='Content-Type',
                                    location='headers')
     }
 
+Note: `data_key` replaced `load_from` in marshmallow 3. When using marshmallow 2, use `load_from`.
 """
 import marshmallow as ma
 
 from webargs.core import argmap2schema
 
-__all__ = [
-    'Nested',
-    'DelimitedList',
-]
+__all__ = ["Nested", "DelimitedList"]
 # Expose all fields from marshmallow.fields.
 # We do this instead of 'from marshmallow.fields import *' because webargs
 # has its own subclass of Nested
-for each in (field_name for field_name in ma.fields.__all__ if field_name != 'Nested'):
+for each in (field_name for field_name in ma.fields.__all__ if field_name != "Nested"):
     __all__.append(each)
     globals()[each] = getattr(ma.fields, each)
 
@@ -40,6 +38,7 @@ class Nested(ma.fields.Nested):
             nested = argmap2schema(nested)
         super(Nested, self).__init__(nested, *args, **kwargs)
 
+
 class DelimitedList(ma.fields.List):
     """Same as `marshmallow.fields.List`, except can load from either a list or
     a delimited string (e.g. "foo,bar,baz").
@@ -49,7 +48,7 @@ class DelimitedList(ma.fields.List):
     :param bool as_string: Dump values to string.
     """
 
-    delimiter = ','
+    delimiter = ","
 
     def __init__(self, cls_or_instance, delimiter=None, as_string=False, **kwargs):
         self.delimiter = delimiter or self.delimiter
@@ -70,5 +69,5 @@ class DelimitedList(ma.fields.List):
                 else value.split(self.delimiter)
             )
         except AttributeError:
-            self.fail('invalid')
+            self.fail("invalid")
         return super(DelimitedList, self)._deserialize(ret, attr, data)

@@ -449,10 +449,12 @@ class Nested(Field):
         ret, errors = schema.dump(nested_obj, many=self.many,
                 update_fields=not self.__updated_fields)
         if isinstance(self.only, basestring):  # self.only is a field name
+            only_field = self.schema.fields[self.only]
+            key = ''.join([self.schema.prefix or '', only_field.dump_to or self.only])
             if self.many:
-                return utils.pluck(ret, key=self.only)
+                return utils.pluck(ret, key=key)
             else:
-                return ret[self.only]
+                return ret[key]
         if errors:
             raise ValidationError(errors, data=ret)
         return ret
@@ -662,20 +664,13 @@ class Number(Field):
         except (TypeError, ValueError) as err:
             self.fail('invalid')
 
-    def serialize(self, attr, obj, accessor=None):
-        """Pulls the value for the given key from the object and returns the
-        serialized number representation. Return a string if `self.as_string=True`,
-        othewise return this field's `num_type`. Receives the same `args` and `kwargs`
-        as `Field`.
-        """
-        ret = Field.serialize(self, attr, obj, accessor=accessor)
-        return self._to_string(ret) if (self.as_string and ret not in (None, missing_)) else ret
-
     def _to_string(self, value):
         return str(value)
 
     def _serialize(self, value, attr, obj):
-        return self._validated(value)
+        """Return a string if `self.as_string=True`, otherwise return this field's `num_type`."""
+        ret = self._validated(value)
+        return self._to_string(ret) if (self.as_string and ret not in (None, missing_)) else ret
 
     def _deserialize(self, value, attr, data):
         return self._validated(value)

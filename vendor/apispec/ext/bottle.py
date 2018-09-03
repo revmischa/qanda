@@ -26,39 +26,49 @@ import re
 
 from bottle import default_app
 
-from apispec import Path
-from apispec import utils
+from apispec import Path, BasePlugin, utils
 from apispec.exceptions import APISpecError
-
-app = default_app()
 
 
 RE_URL = re.compile(r'<(?:[^:<>]+:)?([^<>]+)>')
 
-
-def bottle_path_to_swagger(path):
-    return RE_URL.sub(r'{\1}', path)
+_default_app = default_app()
 
 
-def _route_for_view(view):
-    endpoint = None
-    for route in app.routes:
-        if route._context['callback'] == view:
-            endpoint = route
-            break
-    if not endpoint:
-        raise APISpecError('Could not find endpoint for route {0}'.format(view))
-    return endpoint
+class BottlePlugin(BasePlugin):
+    """APISpec plugin for Bottle"""
+
+    @staticmethod
+    def bottle_path_to_openapi(path):
+        return RE_URL.sub(r'{\1}', path)
+
+    @staticmethod
+    def _route_for_view(app, view):
+        endpoint = None
+        for route in app.routes:
+            if route._context['callback'] == view:
+                endpoint = route
+                break
+        if not endpoint:
+            raise APISpecError('Could not find endpoint for route {0}'.format(view))
+        return endpoint
+
+    def path_helper(self, view, operations, **kwargs):
+        """Path helper that allows passing a bottle view function."""
+        operations = utils.load_operations_from_docstring(view.__doc__)
+        app = kwargs.get('app', _default_app)
+        route = self._route_for_view(app, view)
+        bottle_path = self.bottle_path_to_openapi(route.rule)
+        return Path(path=bottle_path, operations=operations)
 
 
-def path_from_router(spec, view, operations, **kwargs):
-    """Path helper that allows passing a bottle view funciton."""
-    operations = utils.load_operations_from_docstring(view.__doc__)
-    route = _route_for_view(view)
-    bottle_path = bottle_path_to_swagger(route.rule)
-    return Path(path=bottle_path, operations=operations)
-
-
+# Deprecated interface
 def setup(spec):
-    """Setup for the plugin."""
-    spec.register_path_helper(path_from_router)
+    """Setup for the plugin.
+
+    .. deprecated:: 0.39.0
+        Use BottlePlugin class.
+    """
+    plugin = BottlePlugin()
+    plugin.init_spec(spec)
+    spec.plugins.append(plugin)

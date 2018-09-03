@@ -1,4 +1,4 @@
-from qanda import app, g_model
+from qanda import app, g_model, docs
 from flask import request
 from flask_apispec import use_kwargs, marshal_with
 from marshmallow import fields, Schema
@@ -99,3 +99,11 @@ Email: {email}
         slack_log_endpoint,
         data=json.dumps({'text': cstr}),
     )
+
+
+docs.register(api_question_ask)
+docs.register(api_question_answer_post)
+docs.register(api_question_get)
+docs.register(api_get_question_batch)
+docs.register(api_list_questions)
+docs.register(api_contact)

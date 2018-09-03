@@ -6,7 +6,9 @@ sys.path.append(lib_path)
 sys.path.append(vendor_path)
 from flask import Flask
 from flask_cors import CORS
-
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
+from flask_apispec.extension import FlaskApiSpec
 import logging
 from slack_logger import SlackHandler, SlackFormatter
 
@@ -49,6 +51,18 @@ log_setup(app)
 CORS(app)
 
 
+# swagger
+app.config.update({
+    'APISPEC_SPEC': APISpec(
+        title='QandA',
+        version='v1',
+        plugins=[MarshmallowPlugin()],
+    ),
+    'APISPEC_SWAGGER_URL': '/swagger/',
+})
+docs = FlaskApiSpec(app)
+
+
 from qanda.invoker import Invoker
 g_invoker = Invoker()
 
@@ -66,4 +80,4 @@ import qanda.views.slack
 import qanda.views.twilio
 import qanda.views.api
 
-__all__ = ('g_twil', 'g_notify', 'g_model', 'g_invoker', 'app')
+__all__ = ('g_twil', 'g_notify', 'g_model', 'g_invoker', 'app', 'docs')

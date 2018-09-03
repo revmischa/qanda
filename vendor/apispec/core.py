@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 """Core apispec classes and functions."""
 import re
+import warnings
 from collections import OrderedDict
-from distutils import version
+import copy
 
-from apispec.compat import iterkeys
-from .exceptions import APISpecError, PluginError
+import yaml
+
+from apispec.compat import iterkeys, iteritems, PY2, unicode
+from apispec.lazy_dict import LazyDict
+from .exceptions import PluginError, APISpecError, PluginMethodNotImplementedError
+from .utils import OpenAPIVersion
 
 VALID_METHODS = [
     'get',
@@ -29,29 +34,33 @@ def clean_operations(operations, openapi_major_version):
     :param int openapi_major_version: The major version of the OpenAPI standard
         to use. Supported values are 2 and 3.
     """
-    def get_ref(x, openapi_major_version):
-        if isinstance(x, dict):
-            return x
+    def get_ref(param, openapi_major_version):
+        if isinstance(param, dict):
+            return param
 
         ref_paths = {
             2: 'parameters',
             3: 'components/parameters',
         }
         ref_path = ref_paths[openapi_major_version]
-        return {'$ref': '#/{0}/{1}'.format(ref_path, x)}
+        return {'$ref': '#/{0}/{1}'.format(ref_path, param)}
 
     for operation in (operations or {}).values():
         if 'parameters' in operation:
             parameters = operation.get('parameters')
             for parameter in parameters:
-                if (isinstance(parameter, dict) and
-                        'in' in parameter and parameter['in'] == 'path'):
+                if (
+                    isinstance(parameter, dict) and
+                    'in' in parameter and parameter['in'] == 'path'
+                ):
                     parameter['required'] = True
-            operation['parameters'] = [get_ref(p, openapi_major_version)
-                                       for p in parameters]
+            operation['parameters'] = [
+                get_ref(p, openapi_major_version)
+                for p in parameters
+            ]
 
 
-class Path(dict):
+class Path(object):
     """Represents an OpenAPI Path object.
 
     https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#pathsObject
@@ -60,39 +69,34 @@ class Path(dict):
     :param str method: The HTTP method.
     :param dict operation: The operation object, as a `dict`. See
         https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operationObject
-    :param str openapi_version: The version of the OpenAPI standard to use.
-        Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI
-        standard.
+    :param str|OpenAPIVersion openapi_version: The OpenAPI version to use.
+        Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI standard.
     """
-
-    def __init__(self, path=None, operations=None, openapi_version='2.0', **kwargs):
+    def __init__(self, path=None, operations=None, openapi_version='2.0'):
         self.path = path
-        operations = operations or {}
-        openapi_version = validate_openapi_version(openapi_version)
-        clean_operations(operations, openapi_version.version[0])
+        operations = operations or OrderedDict()
+        openapi_version = OpenAPIVersion(openapi_version)
+        clean_operations(operations, openapi_version.major)
         invalid = {key for key in
                    set(iterkeys(operations)) - set(VALID_METHODS)
                    if not key.startswith('x-')}
         if invalid:
             raise APISpecError(
-                'One or more HTTP methods are invalid: {0}'.format(", ".join(invalid))
+                'One or more HTTP methods are invalid: {0}'.format(', '.join(invalid)),
             )
         self.operations = operations
-        kwargs.update(self.operations)
-        super(Path, self).__init__(**kwargs)
 
     def to_dict(self):
         if not self.path:
             raise APISpecError('Path template is not specified')
         return {
-            self.path: self.operations
+            self.path: self.operations,
         }
 
-    def update(self, path, **kwargs):
+    def update(self, path):
         if path.path:
             self.path = path.path
         self.operations.update(path.operations)
-        super(Path, self).update(path.operations)
 
 
 class APISpec(object):
@@ -103,30 +107,16 @@ class APISpec(object):
     :param tuple plugins: Import paths to plugins.
     :param dict info: Optional dict to add to `info`
         See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#infoObject
-    :param callable schema_name_resolver: Callable to generate the
-        schema definition name. Receives the `Schema` class and returns the name to be used in
-        refs within the generated spec.
-
-        Example: ::
-
-            def schema_name_resolver(schema):
-                return schema.__name__
-    :param str openapi_version: The version of the OpenAPI standard to use.
-        Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI
-        standard.
-    :param \*\*dict options: Optional top-level keys
+    :param callable schema_name_resolver: Callable to generate the schema definition name.
+        This parameter is deprecated. It is now a parameter of MarshmallowPlugin.
+    :param str|OpenAPIVersion openapi_version: The OpenAPI version to use.
+        Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI standard.
+    :param dict options: Optional top-level keys
         See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#swagger-object
     """
-
     def __init__(
-        self,
-        title,
-        version,
-        plugins=(),
-        info=None,
-        schema_name_resolver=None,
-        openapi_version='2.0',
-        **options
+        self, title, version, plugins=(), info=None,
+        schema_name_resolver=None, openapi_version='2.0', **options
     ):
         self.info = {
             'title': title,
@@ -134,47 +124,76 @@ class APISpec(object):
         }
         self.info.update(info or {})
 
-        self.openapi_version = validate_openapi_version(openapi_version)
+        self.openapi_version = OpenAPIVersion(openapi_version)
 
         self.options = options
+        if schema_name_resolver is not None:
+            warnings.warn(
+                'schema_name_resolver parameter is deprecated. '
+                'It is now a parameter of MarshmallowPlugin.',
+                DeprecationWarning,
+            )
         self.schema_name_resolver = schema_name_resolver
         # Metadata
         self._definitions = {}
         self._parameters = {}
         self._tags = []
         self._paths = OrderedDict()
-        # Plugin and helpers
-        self.plugins = {}
+
+        # Plugins
+        plugins = list(plugins)  # Cast to list in case a generator is passed
+        # Backward compatibility: plugins can be passed as objects or strings
+        self.plugins = list(p for p in plugins if not isinstance(p, str))
+        for plugin in self.plugins:
+            plugin.init_spec(self)
+
+        # Deprecated interface
+        # Plugins and helpers
+        self.old_plugins = {}
         self._definition_helpers = []
         self._path_helpers = []
         self._operation_helpers = []
         # {'get': {200: [my_helper]}}
         self._response_helpers = {}
-
-        for plugin_path in plugins:
+        old_plugins = list(p for p in plugins if isinstance(p, str))
+        for plugin_path in old_plugins:
             self.setup_plugin(plugin_path)
 
     def to_dict(self):
         ret = {
             'info': self.info,
             'paths': self._paths,
-            'tags': self._tags
+            'tags': self._tags,
         }
 
-        if self.openapi_version.version[0] == 2:
+        if self.openapi_version.major == 2:
             ret['swagger'] = self.openapi_version.vstring
             ret['definitions'] = self._definitions
             ret['parameters'] = self._parameters
+            ret.update(self.options)
 
-        elif self.openapi_version.version[0] == 3:
+        elif self.openapi_version.major == 3:
             ret['openapi'] = self.openapi_version.vstring
-            ret['components'] = {
-                'schemas': self._definitions,
-                'parameters': self._parameters,
-            }
+            options = copy.deepcopy(self.options)
+            components = options.pop('components', {})
 
-        ret.update(self.options)
+            # deep update components object
+            definitions = components.pop('schemas', {})
+            definitions.update(self._definitions)
+            parameters = components.pop('parameters', {})
+            parameters.update(self._parameters)
+
+            ret['components'] = dict(
+                schemas=definitions,
+                parameters=parameters,
+                **components
+            )
+            ret.update(options)
+
         return ret
+
+    def to_yaml(self):
+        return yaml.dump(self.to_dict(), Dumper=YAMLDumper)
 
     def add_parameter(self, param_id, location, **kwargs):
         """ Add a parameter which can be referenced.
@@ -208,41 +227,63 @@ class APISpec(object):
             if path and 'basePath' in self.options:
                 pattern = '^{0}'.format(re.escape(self.options['basePath']))
                 path = re.sub(pattern, '', path)
-
             return path
 
-        p = path
         if isinstance(path, Path):
-            p = path.path
-
-        p = normalize_path(p)
-
-        if isinstance(path, Path):
-            path.path = p
+            path.path = normalize_path(path.path)
+            if operations:
+                path.operations.update(operations)
         else:
-            path = Path(path=p,
-                        operations=operations,
-                        openapi_version=self.openapi_version.vstring)
-        # Execute plugins' helpers
+            path = Path(
+                path=normalize_path(path),
+                operations=operations,
+                openapi_version=self.openapi_version,
+            )
+
+        # Execute path helpers
+        for plugin in self.plugins:
+            try:
+                ret = plugin.path_helper(path=path, operations=path.operations, **kwargs)
+            except PluginMethodNotImplementedError:
+                continue
+            if isinstance(ret, Path):
+                ret.path = normalize_path(ret.path)
+                path.update(ret)
+        # Deprecated interface
         for func in self._path_helpers:
             try:
                 ret = func(
-                    self, path=path, operations=operations, **kwargs
+                    self, path=path, operations=path.operations, **kwargs
                 )
             except TypeError:
                 continue
             if isinstance(ret, Path):
                 ret.path = normalize_path(ret.path)
                 path.update(ret)
-                operations = ret.operations
-        if operations:
-            for func in self._operation_helpers:
-                func(self, path=path, operations=operations, **kwargs)
-
         if not path.path:
             raise APISpecError('Path template is not specified')
 
-        # Process response helpers for any path operations defined.
+        # Execute operation helpers
+        for plugin in self.plugins:
+            try:
+                plugin.operation_helper(path=path, operations=path.operations, **kwargs)
+            except PluginMethodNotImplementedError:
+                continue
+        # Deprecated interface
+        for func in self._operation_helpers:
+            func(self, path=path, operations=path.operations, **kwargs)
+
+        # Execute response helpers
+        # TODO: cache response helpers output for each (method, status_code) couple
+        for method, operation in iteritems(path.operations):
+            if method in VALID_METHODS and 'responses' in operation:
+                for status_code, response in iteritems(operation['responses']):
+                    for plugin in self.plugins:
+                        try:
+                            response.update(plugin.response_helper(method, status_code, **kwargs) or {})
+                        except PluginMethodNotImplementedError:
+                            continue
+        # Deprecated interface
         # Rule is that method + http status exist in both operations and helpers
         methods = set(iterkeys(path.operations)) & set(iterkeys(self._response_helpers))
         for method in methods:
@@ -251,13 +292,15 @@ class APISpec(object):
             for status_code in statuses:
                 for func in self._response_helpers[method][status_code]:
                     responses[status_code].update(
-                        func(self, **kwargs)
+                        func(self, **kwargs),
                     )
 
-        self._paths.setdefault(path.path, path).update(path)
+        self._paths.setdefault(path.path, path.operations).update(path.operations)
 
-    def definition(self, name, properties=None, enum=None, description=None, extra_fields=None,
-                   **kwargs):
+    def definition(
+        self, name, properties=None, enum=None, description=None, extra_fields=None,
+        **kwargs
+    ):
         """Add a new definition to the spec.
 
         .. note::
@@ -273,6 +316,12 @@ class APISpec(object):
         """
         ret = {}
         # Execute all helpers from plugins
+        for plugin in self.plugins:
+            try:
+                ret.update(plugin.definition_helper(name, definition=ret, **kwargs))
+            except PluginMethodNotImplementedError:
+                continue
+        # Deprecated interface
         for func in self._definition_helpers:
             try:
                 ret.update(func(self, name, definition=ret, **kwargs))
@@ -288,7 +337,7 @@ class APISpec(object):
             ret.update(extra_fields)
         self._definitions[name] = ret
 
-    # PLUGIN INTERFACE
+    # Deprecated PLUGIN INTERFACE
 
     # adapted from Sphinx
     def setup_plugin(self, path):
@@ -298,23 +347,29 @@ class APISpec(object):
         :param str path: Import path to the plugin.
         :raise: PluginError if the given plugin is invalid.
         """
-        if path in self.plugins:
+        warnings.warn(
+            'Old style plugins are deprecated. Use classes instead. '
+            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
+            DeprecationWarning,
+        )
+        if path in self.old_plugins:
             return
         try:
             mod = __import__(
-                path, globals=None, locals=None, fromlist=('setup', )
+                path, globals=None, locals=None, fromlist=('setup', ),
             )
         except ImportError as err:
             raise PluginError(
-                'Could not import plugin "{0}"\n\n{1}'.format(path, err)
+                'Could not import plugin "{0}"\n\n{1}'.format(path, err),
             )
         if not hasattr(mod, 'setup'):
             raise PluginError('Plugin "{0}" has no setup(spec) function'.format(path))
         else:
             # Each plugin gets a dict to store arbitrary data
-            self.plugins[path] = {}
+            self.old_plugins[path] = {}
             mod.setup(self)
-        return None
+
+    # Deprecated helpers interface
 
     def register_definition_helper(self, func):
         """Register a new definition helper. The helper **must** meet the following conditions:
@@ -332,6 +387,11 @@ class APISpec(object):
 
         :param callable func: The definition helper function.
         """
+        warnings.warn(
+            'Helper functions are deprecated. Use plugin classes. '
+            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
+            DeprecationWarning,
+        )
         self._definition_helpers.append(func)
 
     def register_path_helper(self, func):
@@ -343,6 +403,11 @@ class APISpec(object):
 
         The helper may define any named arguments in its signature.
         """
+        warnings.warn(
+            'Helper functions are deprecated. Use plugin classes. '
+            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
+            DeprecationWarning,
+        )
         self._path_helpers.append(func)
 
     def register_operation_helper(self, func):
@@ -354,6 +419,11 @@ class APISpec(object):
 
         The helper may define any named arguments in its signature.
         """
+        warnings.warn(
+            'Helper functions are deprecated. Use plugin classes. '
+            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
+            DeprecationWarning,
+        )
         self._operation_helpers.append(func)
 
     def register_response_helper(self, func, method, status_code):
@@ -365,25 +435,31 @@ class APISpec(object):
 
         The helper may define any named arguments in its signature.
         """
+        warnings.warn(
+            'Helper functions are deprecated. Use plugin classes. '
+            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
+            DeprecationWarning,
+        )
         method = method.lower()
         if method not in self._response_helpers:
             self._response_helpers[method] = {}
         self._response_helpers[method].setdefault(status_code, []).append(func)
 
-def validate_openapi_version(openapi_version_str):
-    """Function to validate the version of the OpenAPI passed into APISpec
 
-    :param str openapi_version_str: the string version of the desired OpenAPI
-        version used in the output
-    """
-    min_inclusive_version = version.LooseVersion('2.0')
-    max_exclusive_version = version.LooseVersion('4.0')
+class YAMLDumper(yaml.Dumper):
 
-    openapi_version = version.LooseVersion(openapi_version_str)
+    @staticmethod
+    def _represent_dict(dumper, instance):
+        return dumper.represent_mapping('tag:yaml.org,2002:map', instance.items())
 
-    if not min_inclusive_version <= openapi_version < max_exclusive_version:
-        raise APISpecError(
-            'Not a valid OpenAPI version number: {}'.format(openapi_version)
-        )
+    if PY2:
+        @staticmethod
+        def _represent_unicode(_, uni):
+            return yaml.ScalarNode(tag=u'tag:yaml.org,2002:str', value=uni)
 
-    return openapi_version
+
+if PY2:
+    yaml.add_representer(unicode, YAMLDumper._represent_unicode, Dumper=YAMLDumper)
+yaml.add_representer(OrderedDict, YAMLDumper._represent_dict, Dumper=YAMLDumper)
+yaml.add_representer(LazyDict, YAMLDumper._represent_dict, Dumper=YAMLDumper)
+yaml.add_representer(Path, YAMLDumper._represent_dict, Dumper=YAMLDumper)
