@@ -259,7 +259,7 @@ class Model:
         question = self.question.get_item(Key={'id': id})['Item']
         return question
 
-    def get_questions(self, source: str='web', start_key: Dict=None) -> Dict:
+    def get_questions(self, source: str=None, start_key: Dict=None) -> Dict:
         """Get latest questions.
 
         Returns:
@@ -269,9 +269,10 @@ class Model:
             Limit=100,
             IndexName='source-created-index',  # FIXME: put in CF
             ScanIndexForward=False,  # give us most recent first
-            KeyConditionExpression=Key('source').eq(source),  # filter by source
         )
 
+        if source:
+            query_params['KeyConditionExpression'] = Key('source').eq(source),  # filter by source
         if start_key:
             query_params['ExclusiveStartKey'] = start_key
 
