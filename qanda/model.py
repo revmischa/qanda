@@ -273,6 +273,8 @@ class Model:
 
         if source:
             query_params['KeyConditionExpression'] = Key('source').eq(source)  # filter by source
+        else:
+            query_params['KeyConditionExpression'] = Key('source').exists()  # any
         if start_key:
             query_params['ExclusiveStartKey'] = start_key
 
