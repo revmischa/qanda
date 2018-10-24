@@ -191,7 +191,9 @@ class Model:
             'source': 'web',
             'remote_ip': remote_ip,
         }
-        return self.question_append_answer(question, answer)
+        updated = self.question_append_answer(question, answer)
+        g_notify.notify_of_answer(answer)
+        return updated
 
     def new_answer_from_slack_pm(self, body: str, user_id: str, team_id: str, channel_id: str) -> bool:
         answer_message = self.new_message(

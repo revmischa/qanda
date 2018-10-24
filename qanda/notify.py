@@ -69,6 +69,9 @@ class Notify:
         # notify
         if source == 'slack':
             self.notify_slack_of_answer(question, answer)
+        elif source == 'web':
+            # not implemented yet
+            ...
         elif source == 'sms':
             self.notify_sms_of_answer(question, answer)
         else:
