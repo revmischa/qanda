@@ -271,13 +271,14 @@ class Model:
             ScanIndexForward=False,  # give us most recent first
         )
 
-        if source:
-            query_params['KeyConditionExpression'] = Key('source').eq(source)  # filter by source
-        else:
-            query_params['KeyConditionExpression'] = Key('source').exists()  # any
         if start_key:
             query_params['ExclusiveStartKey'] = start_key
 
+        if source:
+            query_params['KeyConditionExpression'] = Key('source').eq(source)  # filter by source
+        else:
+            # all sources
+            query_params['KeyConditionExpression'] = Key('source').eq('web') | Key('source').eq('slack') | Key('source').eq('sms')
         res = self.question.query(**query_params)
 
         return res
