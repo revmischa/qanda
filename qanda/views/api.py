@@ -23,7 +23,7 @@ class QuestionSchema(Schema):
 
 class QuestionListSchema(Schema):
     start_key = fields.Str()
-    source = fields.Str(missing='web')
+    source = fields.Str()
     questions = fields.Nested(QuestionSchema, many=True)
 
 class QuestionBatchLookupSchema(Schema):

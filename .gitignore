@@ -3,3 +3,4 @@ __pycache__
 qanda/local.cfg
 .ipynb_checkpoints
 *.ipynb
+codegen
