@@ -241,7 +241,11 @@ class SlackApp:
                 user_id=user_id,
                 team_id=self.team_id,
             )
-            reply(blocks=self.get_question_actions(notified, qid))
+            blocks = self.get_question_actions(notified, qid)
+            import pprint
+
+            pprint.pprint(blocks)
+            reply(blocks=blocks)
 
         elif bodylc.startswith("reply "):
             # submit answer
