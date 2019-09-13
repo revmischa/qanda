@@ -108,7 +108,7 @@ class ParseResult(namedtuple('ParseResult', PARSED_COMPONENTS),
                                    query=query,
                                    fragment=fragment,
                                    encoding=encoding).normalize()
-        userinfo, host, port = authority_from(uri_ref, strict=True)
+        userinfo, host, port = authority_from(uri_ref, )
         return cls(scheme=uri_ref.scheme,
                    userinfo=userinfo,
                    host=host,
@@ -120,7 +120,7 @@ class ParseResult(namedtuple('ParseResult', PARSED_COMPONENTS),
                    encoding=encoding)
 
     @classmethod
-    def from_string(cls, uri_string, encoding='utf-8', strict=True,
+    def from_string(cls, uri_string, encoding='utf-8', ,
                     lazy_normalize=True):
         """Parse a URI from the given unicode URI string.
 
@@ -240,7 +240,7 @@ class ParseResultBytes(namedtuple('ParseResultBytes', PARSED_COMPONENTS),
         if not lazy_normalize:
             uri_ref = uri_ref.normalize()
         to_bytes = compat.to_bytes
-        userinfo, host, port = authority_from(uri_ref, strict=True)
+        userinfo, host, port = authority_from(uri_ref, )
         return cls(scheme=to_bytes(scheme, encoding),
                    userinfo=to_bytes(userinfo, encoding),
                    host=to_bytes(host, encoding),
@@ -253,7 +253,7 @@ class ParseResultBytes(namedtuple('ParseResultBytes', PARSED_COMPONENTS),
                    lazy_normalize=lazy_normalize)
 
     @classmethod
-    def from_string(cls, uri_string, encoding='utf-8', strict=True,
+    def from_string(cls, uri_string, encoding='utf-8', ,
                     lazy_normalize=True):
         """Parse a URI from the given unicode URI string.
 

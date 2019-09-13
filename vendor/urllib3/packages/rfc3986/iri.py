@@ -121,7 +121,7 @@ class IRIReference(namedtuple('IRIReference', misc.URI_COMPONENTS),
                     if any(ord(c) > 128 for c in name):
                         try:
                             return idna.encode(name.lower(),
-                                               strict=True,
+                                               ,
                                                std3_rules=True)
                         except idna.IDNAError:
                             raise exceptions.InvalidAuthority(self.authority)

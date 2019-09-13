@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 
 
 @app.route("/slack/slash_ask", methods=["POST"])
-@use_kwargs(SlackSlashcommandSchema(strict=True))
+@use_kwargs(SlackSlashcommandSchema())
 @marshal_with(SlackSlashcommandResponseSchema)
 def slack_slash_ask(**kwargs):
     """Slashcommand handler."""

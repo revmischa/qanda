@@ -19,4 +19,8 @@ validate:
 	$(SAM) validate
 
 bash:
-	docker run -v $PWD:/var/task -it lambci/lambda:build-python3.6 /bin/bash
+	docker run -v $PWD:/var/task -it lambci/lambda:build-python3.7 /bin/bash
+
+package:
+	# broken
+	sam package --template-file template.yml --s3-bucket aws-codestar-eu-central-1-178183757879-qanda-pipe

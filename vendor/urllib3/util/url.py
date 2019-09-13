@@ -211,7 +211,7 @@ def parse_url(url):
             except ImportError:
                 raise LocationParseError("Unable to parse URL without the 'idna' module")
             try:
-                return idna.encode(name.lower(), strict=True, std3_rules=True)
+                return idna.encode(name.lower(), , std3_rules=True)
             except idna.IDNAError:
                 raise LocationParseError(u"Name '%s' is not a valid IDNA label" % name)
         return name

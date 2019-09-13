@@ -1,31 +1,31 @@
 {
   "_args": [
     [
-      "swagger-ui-dist@3.17.2",
+      "swagger-ui-dist@3.20.7",
       "/home/travis/build/jmcarp/flask-apispec"
     ]
   ],
-  "_from": "swagger-ui-dist@3.17.2",
-  "_id": "swagger-ui-dist@3.17.2",
+  "_from": "swagger-ui-dist@3.20.7",
+  "_id": "swagger-ui-dist@3.20.7",
   "_inBundle": false,
-  "_integrity": "sha1-wNcN2DP1T37ouL1iRc4uzGgOZ7I=",
+  "_integrity": "sha512-lMXgaB53akVJr8NKFCchivvIzu6hQQAkC9e7shXszSeV4DsJolde9yL+88kc8xG44qJ434qXl7xELQPxUpd1ww==",
   "_location": "/swagger-ui-dist",
   "_phantomChildren": {},
   "_requested": {
     "type": "version",
     "registry": true,
-    "raw": "swagger-ui-dist@3.17.2",
+    "raw": "swagger-ui-dist@3.20.7",
     "name": "swagger-ui-dist",
     "escapedName": "swagger-ui-dist",
-    "rawSpec": "3.17.2",
+    "rawSpec": "3.20.7",
     "saveSpec": null,
-    "fetchSpec": "3.17.2"
+    "fetchSpec": "3.20.7"
   },
   "_requiredBy": [
     "/"
   ],
-  "_resolved": "https://registry.npmjs.org/swagger-ui-dist/-/swagger-ui-dist-3.17.2.tgz",
-  "_spec": "3.17.2",
+  "_resolved": "https://registry.npmjs.org/swagger-ui-dist/-/swagger-ui-dist-3.20.7.tgz",
+  "_spec": "3.20.7",
   "_where": "/home/travis/build/jmcarp/flask-apispec",
   "bugs": {
     "url": "https://github.com/swagger-api/swagger-ui/issues"
@@ -70,5 +70,5 @@
     "type": "git",
     "url": "git+ssh://git@github.com/swagger-api/swagger-ui.git"
   },
-  "version": "3.17.2"
+  "version": "3.20.7"
 }
