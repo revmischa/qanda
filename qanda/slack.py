@@ -304,7 +304,7 @@ class SlackApp:
                         "text": {
                             "type": "plain_text",
                             "text": "Post It! :woman-raising-hand:",
-                            "emoji": true,
+                            "emoji": True,
                         },
                         "value": "post_on_web",
                     }
