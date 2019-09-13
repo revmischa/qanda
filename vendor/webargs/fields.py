@@ -4,38 +4,42 @@
 Includes all fields from `marshmallow.fields` in addition to a custom
 `Nested` field and `DelimitedList`.
 
-All fields can optionally take a special `location` keyword argument, which tells webargs
-where to parse the request argument from. ::
+All fields can optionally take a special `location` keyword argument, which
+tells webargs where to parse the request argument from.
+
+.. code-block:: python
 
     args = {
-        'active': fields.Bool(location='query')
-        'content_type': fields.Str(data_key='Content-Type',
-                                   location='headers')
+        "active": fields.Bool(location='query'),
+        "content_type": fields.Str(data_key="Content-Type", location="headers"),
     }
 
-Note: `data_key` replaced `load_from` in marshmallow 3. When using marshmallow 2, use `load_from`.
+Note: `data_key` replaced `load_from` in marshmallow 3.
+When using marshmallow 2, use `load_from`.
 """
 import marshmallow as ma
 
-from webargs.core import argmap2schema
-
-__all__ = ["Nested", "DelimitedList"]
 # Expose all fields from marshmallow.fields.
-# We do this instead of 'from marshmallow.fields import *' because webargs
-# has its own subclass of Nested
-for each in (field_name for field_name in ma.fields.__all__ if field_name != "Nested"):
-    __all__.append(each)
-    globals()[each] = getattr(ma.fields, each)
+from marshmallow.fields import *  # noqa: F40
+from webargs.dict2schema import dict2schema
+
+__all__ = ["DelimitedList"] + ma.fields.__all__
 
 
 class Nested(ma.fields.Nested):
     """Same as `marshmallow.fields.Nested`, except can be passed a dictionary as
     the first argument, which will be converted to a `marshmallow.Schema`.
+
+    .. note::
+
+        The schema class here will always be `marshmallow.Schema`, regardless
+        of whether a custom schema class is set on the parser. Pass an explicit schema
+        class if necessary.
     """
 
     def __init__(self, nested, *args, **kwargs):
         if isinstance(nested, dict):
-            nested = argmap2schema(nested)
+            nested = dict2schema(nested)
         super(Nested, self).__init__(nested, *args, **kwargs)
 
 
@@ -58,10 +62,10 @@ class DelimitedList(ma.fields.List):
     def _serialize(self, value, attr, obj):
         ret = super(DelimitedList, self)._serialize(value, attr, obj)
         if self.as_string:
-            return self.delimiter.join(format(each) for each in value)
+            return self.delimiter.join(format(each) for each in ret)
         return ret
 
-    def _deserialize(self, value, attr, data):
+    def _deserialize(self, value, attr, data, **kwargs):
         try:
             ret = (
                 value
@@ -70,4 +74,4 @@ class DelimitedList(ma.fields.List):
             )
         except AttributeError:
             self.fail("invalid")
-        return super(DelimitedList, self)._deserialize(ret, attr, data)
+        return super(DelimitedList, self)._deserialize(ret, attr, data, **kwargs)

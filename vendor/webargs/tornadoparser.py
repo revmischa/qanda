@@ -17,8 +17,9 @@ Example: ::
 import tornado.web
 from tornado.escape import _unicode
 
-from marshmallow.compat import basestring
 from webargs import core
+from webargs.compat import basestring
+from webargs.core import json
 
 
 class HTTPError(tornado.web.HTTPError):
@@ -26,6 +27,7 @@ class HTTPError(tornado.web.HTTPError):
 
     def __init__(self, *args, **kwargs):
         self.messages = kwargs.pop("messages", {})
+        self.headers = kwargs.pop("headers", None)
         super(HTTPError, self).__init__(*args, **kwargs)
 
 
@@ -35,8 +37,13 @@ def parse_json_body(req):
     if content_type and core.is_json(content_type):
         try:
             return core.parse_json(req.body)
-        except (TypeError, ValueError):
+        except TypeError:
             pass
+        except json.JSONDecodeError as e:
+            if e.doc == "":
+                return core.missing
+            else:
+                raise
     return {}
 
 
@@ -75,15 +82,14 @@ def get_value(d, name, field):
 class TornadoParser(core.Parser):
     """Tornado request argument parser."""
 
-    def __init__(self, *args, **kwargs):
-        super(TornadoParser, self).__init__(*args, **kwargs)
-        self.json = None
-
     def parse_json(self, req, name, field):
         """Pull a json value from the request."""
         json_data = self._cache.get("json")
         if json_data is None:
-            self._cache["json"] = json_data = parse_json_body(req)
+            try:
+                self._cache["json"] = json_data = parse_json_body(req)
+            except json.JSONDecodeError as e:
+                return self.handle_invalid_json_error(e, req)
             if json_data is None:
                 return core.missing
         return core.get_value(json_data, name, field, allow_many_nested=True)
@@ -113,11 +119,11 @@ class TornadoParser(core.Parser):
         """Pull a file from the request."""
         return get_value(req.files, name, field)
 
-    def handle_error(self, error, req, schema):
+    def handle_error(self, error, req, schema, error_status_code, error_headers):
         """Handles errors during parsing. Raises a `tornado.web.HTTPError`
         with a 400 error.
         """
-        status_code = getattr(error, "status_code", core.DEFAULT_VALIDATION_STATUS)
+        status_code = error_status_code or self.DEFAULT_VALIDATION_STATUS
         if status_code == 422:
             reason = "Unprocessable Entity"
         else:
@@ -127,6 +133,15 @@ class TornadoParser(core.Parser):
             log_message=str(error.messages),
             reason=reason,
             messages=error.messages,
+            headers=error_headers,
+        )
+
+    def handle_invalid_json_error(self, error, req, *args, **kwargs):
+        raise HTTPError(
+            400,
+            log_message="Invalid JSON body.",
+            reason="Bad Request",
+            messages={"json": ["Invalid JSON body."]},
         )
 
     def get_request_from_view_args(self, view, args, kwargs):

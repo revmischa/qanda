@@ -1,28 +1,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import collections
 import functools
 import inspect
 import logging
 import warnings
+from copy import copy
 
 try:
     import simplejson as json
 except ImportError:
-    import json
+    import json  # type: ignore
 
 import marshmallow as ma
-from marshmallow.compat import iteritems
+from marshmallow import ValidationError
 from marshmallow.utils import missing, is_collection
+
+from webargs.compat import Mapping, iteritems, MARSHMALLOW_VERSION_INFO
+from webargs.dict2schema import dict2schema
+from webargs.fields import DelimitedList
 
 logger = logging.getLogger(__name__)
 
 
 __all__ = [
-    "WebargsError",
     "ValidationError",
-    "argmap2schema",
+    "dict2schema",
     "is_multiple",
     "Parser",
     "get_value",
@@ -30,38 +33,8 @@ __all__ = [
     "parse_json",
 ]
 
-MARSHMALLOW_VERSION_INFO = tuple(
-    [int(part) for part in ma.__version__.split(".") if part.isdigit()]
-)
 
-DEFAULT_VALIDATION_STATUS = 422
-
-
-class WebargsError(Exception):
-    """Base class for all webargs-related errors."""
-
-    pass
-
-
-class ValidationError(WebargsError, ma.exceptions.ValidationError):
-    """Raised when validation fails on user input. Same as
-    `marshmallow.ValidationError`, with the addition of the ``status_code`` and
-    ``headers`` arguments.
-    """
-
-    def __init__(
-        self, message, status_code=DEFAULT_VALIDATION_STATUS, headers=None, **kwargs
-    ):
-        self.status_code = status_code
-        self.headers = headers
-        ma.exceptions.ValidationError.__init__(
-            self, message, status_code=status_code, headers=headers, **kwargs
-        )
-
-    def __repr__(self):
-        return "ValidationError({0!r}, status_code={1}, headers={2})".format(
-            self.args[0], self.status_code, self.headers
-        )
+DEFAULT_VALIDATION_STATUS = 422  # type: int
 
 
 def _callable_or_raise(obj):
@@ -74,49 +47,17 @@ def _callable_or_raise(obj):
         return obj
 
 
-def get_field_names_for_argmap(argmap):
-    if isinstance(argmap, ma.Schema):
-        all_field_names = set(
-            [fname for fname, fobj in iteritems(argmap.fields) if not fobj.dump_only]
-        )
-    else:
-        all_field_names = set(argmap.keys())
-    return all_field_names
-
-
-def fill_in_missing_args(ret, argmap):
-    # WARNING: We modify ret in-place
-    all_field_names = get_field_names_for_argmap(argmap)
-    missing_args = all_field_names - set(ret.keys())
-    for key in missing_args:
-        ret[key] = missing
-    return ret
-
-
-def argmap2schema(argmap):
-    """Generate a `marshmallow.Schema` class given a dictionary of argument
-    names to `Fields <marshmallow.fields.Field>`.
-    """
-    attrs = argmap.copy()
-    if MARSHMALLOW_VERSION_INFO[0] < 3:
-
-        class Meta(object):
-            strict = True
-
-        attrs["Meta"] = Meta
-    return type(str(""), (ma.Schema,), attrs)
-
-
 def is_multiple(field):
     """Return whether or not `field` handles repeated/multi-value arguments."""
-    return isinstance(field, ma.fields.List) and not hasattr(field, "delimiter")
+    return isinstance(field, ma.fields.List) and not isinstance(field, DelimitedList)
 
 
 def get_mimetype(content_type):
     return content_type.split(";")[0].strip() if content_type else None
 
 
-# Adapted from werkzeug: https://github.com/mitsuhiko/werkzeug/blob/master/werkzeug/wrappers.py
+# Adapted from werkzeug:
+# https://github.com/mitsuhiko/werkzeug/blob/master/werkzeug/wrappers.py
 def is_json(mimetype):
     """Indicates if this mimetype is JSON or not.  By default a request
     is considered to include JSON data if the mimetype is
@@ -135,12 +76,12 @@ def is_json(mimetype):
 
 def get_value(data, name, field, allow_many_nested=False):
     """Get a value from a dictionary. Handles ``MultiDict`` types when
-    ``multiple=True``. If the value is not found, return `missing`.
+    ``field`` handles repeated/multi-value arguments.
+    If the value is not found, return `missing`.
 
     :param object data: Mapping (e.g. `dict`) or list-like instance to
         pull the value from.
     :param str name: Name of the key.
-    :param bool multiple: Whether to handle multiple values.
     :param bool allow_many_nested: Whether to allow a list of nested objects
         (it is valid only for JSON format, so it is set to True in ``parse_json``
         methods).
@@ -169,9 +110,9 @@ def get_value(data, name, field, allow_many_nested=False):
     return val
 
 
-def parse_json(s):
+def parse_json(s, encoding="utf-8"):
     if isinstance(s, bytes):
-        s = s.decode("utf-8")
+        s = s.decode(encoding)
     return json.loads(s)
 
 
@@ -201,7 +142,10 @@ class Parser(object):
     :param callable error_handler: Custom error handler function.
     """
 
+    #: Default locations to check for data
     DEFAULT_LOCATIONS = ("querystring", "form", "json")
+    #: The marshmallow Schema class to use when creating new schemas
+    DEFAULT_SCHEMA_CLASS = ma.Schema
     #: Default status code to return for validation errors
     DEFAULT_VALIDATION_STATUS = DEFAULT_VALIDATION_STATUS
     #: Default error message for validation errors
@@ -218,9 +162,10 @@ class Parser(object):
         "files": "parse_files",
     }
 
-    def __init__(self, locations=None, error_handler=None):
+    def __init__(self, locations=None, error_handler=None, schema_class=None):
         self.locations = locations or self.DEFAULT_LOCATIONS
         self.error_callback = _callable_or_raise(error_handler)
+        self.schema_class = schema_class or self.DEFAULT_SCHEMA_CLASS
         #: A short-lived cache to store results from processing request bodies.
         self._cache = {}
 
@@ -239,7 +184,7 @@ class Parser(object):
             raise ValueError(msg)
         return locations
 
-    def _get_value(self, name, argobj, req, location):
+    def _get_handler(self, location):
         # Parsing function to call
         # May be a method name (str) or a function
         func = self.__location_map__.get(location)
@@ -248,10 +193,13 @@ class Parser(object):
                 function = func
             else:
                 function = getattr(self, func)
-            value = function(req, name, argobj)
         else:
             raise ValueError('Invalid location: "{0}"'.format(location))
-        return value
+        return function
+
+    def _get_value(self, name, argobj, req, location):
+        function = self._get_handler(location)
+        return function(req, name, argobj)
 
     def parse_arg(self, name, field, req, locations=None):
         """Parse a single argument from a request.
@@ -265,8 +213,8 @@ class Parser(object):
         :param req: The request object to parse.
         :param tuple locations: The locations ('json', 'querystring', etc.) where
             to search for the value.
-        :return: The unvalidated argument value or `missing` if the value cannot be found
-            on the request.
+        :return: The unvalidated argument value or `missing` if the value cannot
+            be found on the request.
         """
         location = field.metadata.get("location")
         if location:
@@ -287,9 +235,9 @@ class Parser(object):
             assert (
                 "json" in locations
             ), "schema.many=True is only supported for JSON location"
-            # The ad hoc Nested field is more like a workaround or a helper, and it servers its
-            # purpose fine. However, if somebody has a desire to re-design the support of
-            # bulk-type arguments, go ahead.
+            # The ad hoc Nested field is more like a workaround or a helper,
+            # and it servers its purpose fine. However, if somebody has a desire
+            # to re-design the support of bulk-type arguments, go ahead.
             parsed = self.parse_arg(
                 name="json",
                 field=ma.fields.Nested(schema, many=True),
@@ -317,23 +265,11 @@ class Parser(object):
                     parsed[argname] = parsed_value
         return parsed
 
-    def _on_validation_error(self, error, req, schema):
-        if isinstance(error, ma.exceptions.ValidationError) and not isinstance(
-            error, ValidationError
-        ):
-            # Raise a webargs error instead
-            kwargs = getattr(error, "kwargs", {})
-            kwargs["field_names"] = error.field_names
-            kwargs["data"] = error.data
-            if MARSHMALLOW_VERSION_INFO[0] < 3:
-                kwargs["fields"] = error.fields
-            if "status_code" not in kwargs:
-                kwargs["status_code"] = self.DEFAULT_VALIDATION_STATUS
-            error = ValidationError(error.messages, **kwargs)
-        if self.error_callback:
-            self.error_callback(error, req, schema)
-        else:
-            self.handle_error(error, req, schema)
+    def _on_validation_error(
+        self, error, req, schema, error_status_code, error_headers
+    ):
+        error_handler = self.error_callback or self.handle_error
+        error_handler(error, req, schema, error_status_code, error_headers)
 
     def _validate_arguments(self, data, validators):
         for validator in validators:
@@ -357,7 +293,7 @@ class Parser(object):
         elif callable(argmap):
             schema = argmap(req)
         else:
-            schema = argmap2schema(argmap)()
+            schema = dict2schema(argmap, self.schema_class)()
         if MARSHMALLOW_VERSION_INFO[0] < 3 and not schema.strict:
             warnings.warn(
                 "It is highly recommended that you set strict=True on your schema "
@@ -366,7 +302,20 @@ class Parser(object):
             )
         return schema
 
-    def parse(self, argmap, req=None, locations=None, validate=None, force_all=False):
+    def _clone(self):
+        clone = copy(self)
+        clone.clear_cache()
+        return clone
+
+    def parse(
+        self,
+        argmap,
+        req=None,
+        locations=None,
+        validate=None,
+        error_status_code=None,
+        error_headers=None,
+    ):
         """Main request parsing method.
 
         :param argmap: Either a `marshmallow.Schema`, a `dict`
@@ -379,29 +328,41 @@ class Parser(object):
         :param callable validate: Validation function or list of validation functions
             that receives the dictionary of parsed arguments. Validator either returns a
             boolean or raises a :exc:`ValidationError`.
+        :param int error_status_code: Status code passed to error handler functions when
+            a `ValidationError` is raised.
+        :param dict error_headers: Headers passed to error handler functions when a
+            a `ValidationError` is raised.
 
          :return: A dictionary of parsed arguments
         """
+        self.clear_cache()  # in case someone used `parse_*()`
         req = req if req is not None else self.get_default_request()
         assert req is not None, "Must pass req object"
         data = None
         validators = _ensure_list_of_callables(validate)
+        parser = self._clone()
         schema = self._get_schema(argmap, req)
         try:
-            parsed = self._parse_request(schema=schema, req=req, locations=locations)
+            parsed = parser._parse_request(
+                schema=schema, req=req, locations=locations or self.locations
+            )
             result = schema.load(parsed)
             data = result.data if MARSHMALLOW_VERSION_INFO[0] < 3 else result
-            self._validate_arguments(data, validators)
+            parser._validate_arguments(data, validators)
         except ma.exceptions.ValidationError as error:
-            self._on_validation_error(error, req, schema)
-        finally:
-            self.clear_cache()
-        if force_all:
-            fill_in_missing_args(data, schema)
+            parser._on_validation_error(
+                error, req, schema, error_status_code, error_headers
+            )
         return data
 
     def clear_cache(self):
-        """Invalidate the parser's cache."""
+        """Invalidate the parser's cache.
+
+        This is usually a no-op now since the Parser clone used for parsing a
+        request is discarded afterwards.  It can still be used when manually
+        calling ``parse_*`` methods which would populate the cache on the main
+        Parser instance.
+        """
         self._cache = {}
         return None
 
@@ -426,7 +387,14 @@ class Parser(object):
         return None
 
     def use_args(
-        self, argmap, req=None, locations=None, as_kwargs=False, validate=None
+        self,
+        argmap,
+        req=None,
+        locations=None,
+        as_kwargs=False,
+        validate=None,
+        error_status_code=None,
+        error_headers=None,
     ):
         """Decorator that injects parsed arguments into a view function or method.
 
@@ -445,13 +413,17 @@ class Parser(object):
         :param callable validate: Validation function that receives the dictionary
             of parsed arguments. If the function returns ``False``, the parser
             will raise a :exc:`ValidationError`.
+        :param int error_status_code: Status code passed to error handler functions when
+            a `ValidationError` is raised.
+        :param dict error_headers: Headers passed to error handler functions when a
+            a `ValidationError` is raised.
         """
         locations = locations or self.locations
         request_obj = req
         # Optimization: If argmap is passed as a dictionary, we only need
         # to generate a Schema once
-        if isinstance(argmap, collections.Mapping):
-            argmap = argmap2schema(argmap)()
+        if isinstance(argmap, Mapping):
+            argmap = dict2schema(argmap, self.schema_class)()
 
         def decorator(func):
             req_ = request_obj
@@ -459,9 +431,6 @@ class Parser(object):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 req_obj = req_
-
-                # if as_kwargs is passed, must include all args
-                force_all = as_kwargs
 
                 if not req_obj:
                     req_obj = self.get_request_from_view_args(func, args, kwargs)
@@ -471,7 +440,8 @@ class Parser(object):
                     req=req_obj,
                     locations=locations,
                     validate=validate,
-                    force_all=force_all,
+                    error_status_code=error_status_code,
+                    error_headers=error_headers,
                 )
                 if as_kwargs:
                     kwargs.update(parsed_args)
@@ -529,8 +499,9 @@ class Parser(object):
 
     def error_handler(self, func):
         """Decorator that registers a custom error handling function. The
-        function should received the raised error, request object, and the
-        `marshmallow.Schema` instance used to parse the request. Overrides
+        function should receive the raised error, request object,
+        `marshmallow.Schema` instance used to parse the request, error status code,
+        and headers to use for the error response. Overrides
         the parser's ``handle_error`` method.
 
         Example: ::
@@ -545,7 +516,7 @@ class Parser(object):
 
 
             @parser.error_handler
-            def handle_error(error, req, schema):
+            def handle_error(error, req, schema, status_code, headers):
                 raise CustomError(error.messages)
 
         :param callable func: The error callback to register.
@@ -591,7 +562,9 @@ class Parser(object):
         """
         return missing
 
-    def handle_error(self, error, req, schema):
+    def handle_error(
+        self, error, req, schema, error_status_code=None, error_headers=None
+    ):
         """Called if an error occurs while parsing args. By default, just logs and
         raises ``error``.
         """

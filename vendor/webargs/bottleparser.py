@@ -20,6 +20,7 @@ Example: ::
 import bottle
 
 from webargs import core
+from webargs.core import json
 
 
 class BottleParser(core.Parser):
@@ -39,8 +40,13 @@ class BottleParser(core.Parser):
         if json_data is None:
             try:
                 self._cache["json"] = json_data = req.json
-            except (AttributeError, ValueError):
+            except AttributeError:
                 return core.missing
+            except json.JSONDecodeError as e:
+                if e.doc == "":
+                    return core.missing
+                else:
+                    return self.handle_invalid_json_error(e, req)
             if json_data is None:
                 return core.missing
         return core.get_value(json_data, name, field, allow_many_nested=True)
@@ -57,14 +63,21 @@ class BottleParser(core.Parser):
         """Pull a file from the request."""
         return core.get_value(req.files, name, field)
 
-    def handle_error(self, error, req, schema):
+    def handle_error(self, error, req, schema, error_status_code, error_headers):
         """Handles errors during parsing. Aborts the current request with a
         400 error.
         """
-        status_code = getattr(error, "status_code", self.DEFAULT_VALIDATION_STATUS)
-        headers = getattr(error, "headers", {})
+        status_code = error_status_code or self.DEFAULT_VALIDATION_STATUS
         raise bottle.HTTPError(
-            status=status_code, body=error.messages, headers=headers, exception=error
+            status=status_code,
+            body=error.messages,
+            headers=error_headers,
+            exception=error,
+        )
+
+    def handle_invalid_json_error(self, error, req, *args, **kwargs):
+        raise bottle.HTTPError(
+            status=400, body={"json": ["Invalid JSON body."]}, exception=error
         )
 
     def get_default_request(self):

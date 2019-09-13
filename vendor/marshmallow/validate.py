@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
 """Validation classes for various types of data."""
-
-from __future__ import unicode_literals
-
 import re
+from itertools import zip_longest
 from operator import attrgetter
 
-from marshmallow.compat import basestring, text_type, zip_longest
 from marshmallow.exceptions import ValidationError
 
 
-class Validator(object):
+class Validator:
     """Base abstract class for validators.
 
     .. note::
@@ -20,18 +16,17 @@ class Validator(object):
 
     def __repr__(self):
         args = self._repr_args()
-        args = '{0}, '.format(args) if args else ''
+        args = "{}, ".format(args) if args else ""
 
-        return (
-            '<{self.__class__.__name__}({args}error={self.error!r})>'
-            .format(self=self, args=args)
+        return "<{self.__class__.__name__}({args}error={self.error!r})>".format(
+            self=self, args=args
         )
 
     def _repr_args(self):
         """A string representation of the args passed to this validator. Used by
         `__repr__`.
         """
-        return ''
+        return ""
 
 
 class URL(Validator):
@@ -42,31 +37,40 @@ class URL(Validator):
         Can be interpolated with `{input}`.
     :param set schemes: Valid schemes. By default, ``http``, ``https``,
         ``ftp``, and ``ftps`` are allowed.
-    :param bool require_tld: Whether to reject non-FQDN hostnames
+    :param bool require_tld: Whether to reject non-FQDN hostnames.
     """
 
-    class RegexMemoizer(object):
-
+    class RegexMemoizer:
         def __init__(self):
             self._memoized = {}
 
         def _regex_generator(self, relative, require_tld):
-            return re.compile(r''.join((
-                r'^',
-                r'(' if relative else r'',
-                r'(?:[a-z0-9\.\-\+]*)://',  # scheme is validated separately
-                r'(?:[^:@]+?:[^:@]*?@|)',  # basic auth
-                r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+',
-                r'(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|',  # domain...
-                r'localhost|',  # localhost...
-                (r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.?)|'
-                 if not require_tld else r''),  # allow dotless hostnames
-                r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|',  # ...or ipv4
-                r'\[?[A-F0-9]*:[A-F0-9:]+\]?)',  # ...or ipv6
-                r'(?::\d+)?',  # optional port
-                r')?' if relative else r'',  # host is optional, allow for relative URLs
-                r'(?:/?|[/?]\S+)$',
-            )), re.IGNORECASE)
+            return re.compile(
+                r"".join(
+                    (
+                        r"^",
+                        r"(" if relative else r"",
+                        r"(?:[a-z0-9\.\-\+]*)://",  # scheme is validated separately
+                        r"(?:[^:@]+?(:[^:@]*?)?@|)",  # basic auth
+                        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+",
+                        r"(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|",  # domain...
+                        r"localhost|",  # localhost...
+                        (
+                            r"(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.?)|"
+                            if not require_tld
+                            else r""
+                        ),  # allow dotless hostnames
+                        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|",  # ...or ipv4
+                        r"\[[A-F0-9]*:[A-F0-9:]+\])",  # ...or ipv6
+                        r"(?::\d+)?",  # optional port
+                        r")?"
+                        if relative
+                        else r"",  # host is optional, allow for relative URLs
+                        r"(?:/?|[/?]\S+)$",
+                    )
+                ),
+                re.IGNORECASE,
+            )
 
         def __call__(self, relative, require_tld):
             key = (relative, require_tld)
@@ -77,18 +81,17 @@ class URL(Validator):
 
     _regex = RegexMemoizer()
 
-    default_message = 'Not a valid URL.'
-    default_schemes = set(['http', 'https', 'ftp', 'ftps'])
+    default_message = "Not a valid URL."
+    default_schemes = {"http", "https", "ftp", "ftps"}
 
-    # TODO; Switch position of `error` and `schemes` in 3.0
-    def __init__(self, relative=False, error=None, schemes=None, require_tld=True):
+    def __init__(self, *, relative=False, schemes=None, require_tld=True, error=None):
         self.relative = relative
         self.error = error or self.default_message
         self.schemes = schemes or self.default_schemes
         self.require_tld = require_tld
 
     def _repr_args(self):
-        return 'relative={0!r}'.format(self.relative)
+        return "relative={!r}".format(self.relative)
 
     def _format_error(self, value):
         return self.error.format(input=value)
@@ -99,8 +102,8 @@ class URL(Validator):
             raise ValidationError(message)
 
         # Check first if the scheme is valid
-        if '://' in value:
-            scheme = value.split('://')[0].lower()
+        if "://" in value:
+            scheme = value.split("://")[0].lower()
             if scheme not in self.schemes:
                 raise ValidationError(message)
 
@@ -123,21 +126,24 @@ class Email(Validator):
         r"(^[-!#$%&'*+/=?^`{}|~\w]+(\.[-!#$%&'*+/=?^`{}|~\w]+)*$"  # dot-atom
         # quoted-string
         r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]'
-        r'|\\[\001-\011\013\014\016-\177])*"$)', re.IGNORECASE | re.UNICODE)
+        r'|\\[\001-\011\013\014\016-\177])*"$)',
+        re.IGNORECASE | re.UNICODE,
+    )
 
     DOMAIN_REGEX = re.compile(
         # domain
-        r'(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+'
-        r'(?:[A-Z]{2,6}|[A-Z0-9-]{2,})$'
+        r"(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+" r"(?:[A-Z]{2,6}|[A-Z0-9-]{2,})$"
         # literal form, ipv4 address (SMTP 4.1.3)
-        r'|^\[(25[0-5]|2[0-4]\d|[0-1]?\d?\d)'
-        r'(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}\]$', re.IGNORECASE | re.UNICODE)
+        r"|^\[(25[0-5]|2[0-4]\d|[0-1]?\d?\d)"
+        r"(\.(25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}\]$",
+        re.IGNORECASE | re.UNICODE,
+    )
 
-    DOMAIN_WHITELIST = ('localhost',)
+    DOMAIN_WHITELIST = ("localhost",)
 
-    default_message = 'Not a valid email address.'
+    default_message = "Not a valid email address."
 
-    def __init__(self, error=None):
+    def __init__(self, *, error=None):
         self.error = error or self.default_message
 
     def _format_error(self, value):
@@ -146,10 +152,10 @@ class Email(Validator):
     def __call__(self, value):
         message = self._format_error(value)
 
-        if not value or '@' not in value:
+        if not value or "@" not in value:
             raise ValidationError(message)
 
-        user_part, domain_part = value.rsplit('@', 1)
+        user_part, domain_part = value.rsplit("@", 1)
 
         if not self.USER_REGEX.match(user_part):
             raise ValidationError(message)
@@ -157,7 +163,7 @@ class Email(Validator):
         if domain_part not in self.DOMAIN_WHITELIST:
             if not self.DOMAIN_REGEX.match(domain_part):
                 try:
-                    domain_part = domain_part.encode('idna').decode('ascii')
+                    domain_part = domain_part.encode("idna").decode("ascii")
                 except UnicodeError:
                     pass
                 else:
@@ -169,11 +175,13 @@ class Email(Validator):
 
 
 class Range(Validator):
-    """Validator which succeeds if the value it is passed is greater
-    or equal to ``min`` and less than or equal to ``max``. If ``min``
-    is not specified, or is specified as `None`, no lower bound
-    exists. If ``max`` is not specified, or is specified as `None`,
-    no upper bound exists.
+    """Validator which succeeds if the value passed to it is within the specified
+    range. If ``min`` is not specified, or is specified as `None`,
+    no lower bound exists. If ``max`` is not specified, or is specified as `None`,
+    no upper bound exists. The inclusivity of the bounds (if they exist) is configurable.
+    If ``min_inclusive`` is not specified, or is specified as `True`, then
+    the ``min`` bound is included in the range. If ``max_inclusive`` is not specified,
+    or is specified as `True`, then the ``max`` bound is included in the range.
 
     :param min: The minimum value (lower bound). If not provided, minimum
         value will not be checked.
@@ -181,36 +189,65 @@ class Range(Validator):
         value will not be checked.
     :param str error: Error message to raise in case of a validation error.
         Can be interpolated with `{input}`, `{min}` and `{max}`.
+    :param bool min_inclusive: Whether the `min` bound is included in the range.
+    :param bool max_inclusive: Whether the `max` bound is included in the range.
     """
 
-    message_min = 'Must be at least {min}.'
-    message_max = 'Must be at most {max}.'
-    message_all = 'Must be between {min} and {max}.'
+    message_min = "Must be {min_op} {{min}}."
+    message_max = "Must be {max_op} {{max}}."
+    message_all = "Must be {min_op} {{min}} and {max_op} {{max}}."
 
-    def __init__(self, min=None, max=None, error=None):
+    message_gte = "greater than or equal to"
+    message_gt = "greater than"
+    message_lte = "less than or equal to"
+    message_lt = "less than"
+
+    def __init__(
+        self, min=None, max=None, *, min_inclusive=True, max_inclusive=True, error=None
+    ):
         self.min = min
         self.max = max
         self.error = error
+        self.min_inclusive = min_inclusive
+        self.max_inclusive = max_inclusive
+
+        # interpolate messages based on bound inclusivity
+        self.message_min = self.message_min.format(
+            min_op=self.message_gte if self.min_inclusive else self.message_gt
+        )
+        self.message_max = self.message_max.format(
+            max_op=self.message_lte if self.max_inclusive else self.message_lt
+        )
+        self.message_all = self.message_all.format(
+            min_op=self.message_gte if self.min_inclusive else self.message_gt,
+            max_op=self.message_lte if self.max_inclusive else self.message_lt,
+        )
 
     def _repr_args(self):
-        return 'min={0!r}, max={1!r}'.format(self.min, self.max)
+        return "min={!r}, max={!r}, min_inclusive={!r}, max_inclusive={!r}".format(
+            self.min, self.max, self.min_inclusive, self.max_inclusive
+        )
 
     def _format_error(self, value, message):
         return (self.error or message).format(input=value, min=self.min, max=self.max)
 
     def __call__(self, value):
-        if self.min is not None and value < self.min:
+        if self.min is not None and (
+            value < self.min if self.min_inclusive else value <= self.min
+        ):
             message = self.message_min if self.max is None else self.message_all
             raise ValidationError(self._format_error(value, message))
 
-        if self.max is not None and value > self.max:
+        if self.max is not None and (
+            value > self.max if self.max_inclusive else value >= self.max
+        ):
             message = self.message_max if self.min is None else self.message_all
             raise ValidationError(self._format_error(value, message))
 
         return value
 
 
-class Length(Range):
+class Length(Validator):
     """Validator which succeeds if the value passed to it has a
     length between a minimum and maximum. Uses len(), so it
     can work for strings, lists, or anything with length.
@@ -225,27 +262,30 @@ class Length(Range):
         Can be interpolated with `{input}`, `{min}` and `{max}`.
     """
 
-    message_min = 'Shorter than minimum length {min}.'
-    message_max = 'Longer than maximum length {max}.'
-    message_all = 'Length must be between {min} and {max}.'
-    message_equal = 'Length must be {equal}.'
+    message_min = "Shorter than minimum length {min}."
+    message_max = "Longer than maximum length {max}."
+    message_all = "Length must be between {min} and {max}."
+    message_equal = "Length must be {equal}."
 
-    def __init__(self, min=None, max=None, error=None, equal=None):
+    def __init__(self, min=None, max=None, *, error=None, equal=None):
         if equal is not None and any([min, max]):
             raise ValueError(
-                'The `equal` parameter was provided, maximum or '
-                'minimum parameter must not be provided.'
+                "The `equal` parameter was provided, maximum or "
+                "minimum parameter must not be provided."
             )
 
-        super(Length, self).__init__(min, max, error)
+        self.min = min
+        self.max = max
+        self.error = error
         self.equal = equal
 
     def _repr_args(self):
-        return 'min={0!r}, max={1!r}, equal={2!r}'.format(self.min, self.max, self.equal)
+        return "min={!r}, max={!r}, equal={!r}".format(self.min, self.max, self.equal)
 
     def _format_error(self, value, message):
-        return (self.error or message).format(input=value, min=self.min, max=self.max,
-                                              equal=self.equal)
+        return (self.error or message).format(
+            input=value, min=self.min, max=self.max, equal=self.equal
+        )
 
     def __call__(self, value):
         length = len(value)
@@ -275,14 +315,14 @@ class Equal(Validator):
         Can be interpolated with `{input}` and `{other}`.
     """
 
-    default_message = 'Must be equal to {other}.'
+    default_message = "Must be equal to {other}."
 
-    def __init__(self, comparable, error=None):
+    def __init__(self, comparable, *, error=None):
         self.comparable = comparable
         self.error = error or self.default_message
 
     def _repr_args(self):
-        return 'comparable={0!r}'.format(self.comparable)
+        return "comparable={!r}".format(self.comparable)
 
     def _format_error(self, value):
         return self.error.format(input=value, other=self.comparable)
@@ -294,7 +334,11 @@ class Equal(Validator):
 
 
 class Regexp(Validator):
-    """Validate ``value`` against the provided regex.
+    """Validator which succeeds if the ``value`` matches ``regex``.
+
+    .. note::
+
+        Uses `re.match`, which searches for a match at the beginning of a string.
 
     :param regex: The regular expression string to use. Can also be a compiled
         regular expression pattern.
@@ -304,14 +348,16 @@ class Regexp(Validator):
         Can be interpolated with `{input}` and `{regex}`.
     """
 
-    default_message = 'String does not match expected pattern.'
+    default_message = "String does not match expected pattern."
 
-    def __init__(self, regex, flags=0, error=None):
-        self.regex = re.compile(regex, flags) if isinstance(regex, basestring) else regex
+    def __init__(self, regex, flags=0, *, error=None):
+        self.regex = (
+            re.compile(regex, flags) if isinstance(regex, (str, bytes)) else regex
+        )
         self.error = error or self.default_message
 
     def _repr_args(self):
-        return 'regex={0!r}'.format(self.regex)
+        return "regex={!r}".format(self.regex)
 
     def _format_error(self, value):
         return self.error.format(input=value, regex=self.regex.pattern)
@@ -335,15 +381,15 @@ class Predicate(Validator):
     :param kwargs: Additional keyword arguments to pass to the method.
     """
 
-    default_message = 'Invalid input.'
+    default_message = "Invalid input."
 
-    def __init__(self, method, error=None, **kwargs):
+    def __init__(self, method, *, error=None, **kwargs):
         self.method = method
         self.error = error or self.default_message
         self.kwargs = kwargs
 
     def _repr_args(self):
-        return 'method={0!r}, kwargs={1!r}'.format(self.method, self.kwargs)
+        return "method={!r}, kwargs={!r}".format(self.method, self.kwargs)
 
     def _format_error(self, value):
         return self.error.format(input=value, method=self.method)
@@ -365,21 +411,18 @@ class NoneOf(Validator):
         interpolated using `{input}` and `{values}`.
     """
 
-    default_message = 'Invalid input.'
+    default_message = "Invalid input."
 
-    def __init__(self, iterable, error=None):
+    def __init__(self, iterable, *, error=None):
         self.iterable = iterable
-        self.values_text = ', '.join(text_type(each) for each in self.iterable)
+        self.values_text = ", ".join(str(each) for each in self.iterable)
         self.error = error or self.default_message
 
     def _repr_args(self):
-        return 'iterable={0!r}'.format(self.iterable)
+        return "iterable={!r}".format(self.iterable)
 
     def _format_error(self, value):
-        return self.error.format(
-            input=value,
-            values=self.values_text,
-        )
+        return self.error.format(input=value, values=self.values_text)
 
     def __call__(self, value):
         try:
@@ -400,35 +443,33 @@ class OneOf(Validator):
         interpolated with `{input}`, `{choices}` and `{labels}`.
     """
 
-    default_message = 'Not a valid choice.'
+    default_message = "Must be one of: {choices}."
 
-    def __init__(self, choices, labels=None, error=None):
+    def __init__(self, choices, labels=None, *, error=None):
         self.choices = choices
-        self.choices_text = ', '.join(text_type(choice) for choice in self.choices)
+        self.choices_text = ", ".join(str(choice) for choice in self.choices)
         self.labels = labels if labels is not None else []
-        self.labels_text = ', '.join(text_type(label) for label in self.labels)
+        self.labels_text = ", ".join(str(label) for label in self.labels)
         self.error = error or self.default_message
 
     def _repr_args(self):
-        return 'choices={0!r}, labels={1!r}'.format(self.choices, self.labels)
+        return "choices={!r}, labels={!r}".format(self.choices, self.labels)
 
     def _format_error(self, value):
         return self.error.format(
-            input=value,
-            choices=self.choices_text,
-            labels=self.labels_text,
+            input=value, choices=self.choices_text, labels=self.labels_text
         )
 
     def __call__(self, value):
         try:
             if value not in self.choices:
                 raise ValidationError(self._format_error(value))
-        except TypeError:
-            raise ValidationError(self._format_error(value))
+        except TypeError as error:
+            raise ValidationError(self._format_error(value)) from error
 
         return value
 
-    def options(self, valuegetter=text_type):
+    def options(self, valuegetter=str):
         """Return a generator over the (value, label) pairs, where value
         is a string associated with each choice. This convenience method
         is useful to populate, for instance, a form select field.
@@ -437,43 +478,39 @@ class OneOf(Validator):
             be a one-argument callable which returns the value of a
             choice. In the latter case, the string specifies the name
             of an attribute of the choice objects. Defaults to `str()`
-            or `unicode()`.
+            or `str()`.
         """
         valuegetter = valuegetter if callable(valuegetter) else attrgetter(valuegetter)
-        pairs = zip_longest(self.choices, self.labels, fillvalue='')
+        pairs = zip_longest(self.choices, self.labels, fillvalue="")
 
         return ((valuegetter(choice), label) for choice, label in pairs)
 
 
 class ContainsOnly(OneOf):
     """Validator which succeeds if ``value`` is a sequence and each element
-    in the sequence is also in the sequence passed as ``choices``.
+    in the sequence is also in the sequence passed as ``choices``. Empty input
+    is considered valid.
 
     :param iterable choices: Same as :class:`OneOf`.
     :param iterable labels: Same as :class:`OneOf`.
     :param str error: Same as :class:`OneOf`.
+
+    .. versionchanged:: 3.0.0b2
+        Duplicate values are considered valid.
+    .. versionchanged:: 3.0.0b2
+        Empty input is considered valid. Use `validate.Length(min=1) <marshmallow.validate.Length>`
+        to validate against empty inputs.
     """
 
-    default_message = 'One or more of the choices you made was not acceptable.'
+    default_message = "One or more of the choices you made was not in: {choices}."
 
     def _format_error(self, value):
-        value_text = ', '.join(text_type(val) for val in value)
-        return super(ContainsOnly, self)._format_error(value_text)
+        value_text = ", ".join(str(val) for val in value)
+        return super()._format_error(value_text)
 
     def __call__(self, value):
-        choices = list(self.choices)
-
-        if not value and choices:
-            raise ValidationError(self._format_error(value))
-
-        # We check list.index instead of using set.issubset so that
-        # unhashable types are handled.
+        # We can't use set.issubset because does not handle unhashable types
         for val in value:
-            try:
-                index = choices.index(val)
-            except ValueError:
+            if val not in self.choices:
                 raise ValidationError(self._format_error(value))
-            else:
-                del choices[index]
-
         return value

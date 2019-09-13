@@ -1,102 +1,255 @@
 # -*- coding: utf-8 -*-
 """Core apispec classes and functions."""
-import re
-import warnings
 from collections import OrderedDict
-import copy
+from copy import deepcopy
+import warnings
 
-import yaml
+from apispec.compat import iterkeys, iteritems
+from .exceptions import (
+    APISpecError,
+    PluginMethodNotImplementedError,
+    DuplicateComponentNameError,
+    DuplicateParameterError,
+    InvalidParameterError,
+)
+from .utils import OpenAPIVersion, deepupdate, COMPONENT_SUBSECTIONS, build_reference
 
-from apispec.compat import iterkeys, iteritems, PY2, unicode
-from apispec.lazy_dict import LazyDict
-from .exceptions import PluginError, APISpecError, PluginMethodNotImplementedError
-from .utils import OpenAPIVersion
+VALID_METHODS_OPENAPI_V2 = ["get", "post", "put", "patch", "delete", "head", "options"]
 
-VALID_METHODS = [
-    'get',
-    'post',
-    'put',
-    'patch',
-    'delete',
-    'head',
-    'options',
-]
+VALID_METHODS_OPENAPI_V3 = VALID_METHODS_OPENAPI_V2 + ["trace"]
+
+VALID_METHODS = {2: VALID_METHODS_OPENAPI_V2, 3: VALID_METHODS_OPENAPI_V3}
+
+
+def get_ref(obj_type, obj, openapi_major_version):
+    """Return object or reference
+
+    If obj is a dict, it is assumed to be a complete description and it is returned as is.
+    Otherwise, it is assumed to be a reference name as string and the corresponding $ref
+    string is returned.
+
+    :param str obj_type: "parameter" or "response"
+    :param dict|str obj: parameter or response in dict form or as ref_id string
+    :param int openapi_major_version: The major version of the OpenAPI standard
+    """
+    if isinstance(obj, dict):
+        return obj
+    return build_reference(obj_type, openapi_major_version, obj)
+
+
+def clean_parameters(parameters, openapi_major_version):
+    """Ensure that all parameters with "in" equal to "path" are also required
+    as required by the OpenAPI specification, as well as normalizing any
+    references to global parameters and checking for duplicates parameters
+
+    See https ://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#parameterObject.
+
+    :param list parameters: List of parameters mapping
+    :param int openapi_major_version: The major version of the OpenAPI standard
+    """
+    seen = set()
+    for parameter in [p for p in parameters if isinstance(p, dict)]:
+
+        # check missing name / location
+        missing_attrs = [attr for attr in ("name", "in") if attr not in parameter]
+        if missing_attrs:
+            raise InvalidParameterError(
+                "Missing keys {} for parameter".format(missing_attrs)
+            )
+
+        # OpenAPI Spec 3 and 2 don't allow for duplicated parameters
+        # A unique parameter is defined by a combination of a name and location
+        unique_key = (parameter["name"], parameter["in"])
+        if unique_key in seen:
+            raise DuplicateParameterError(
+                "Duplicate parameter with name {} and location {}".format(
+                    parameter["name"], parameter["in"]
+                )
+            )
+        seen.add(unique_key)
+
+        # Add "required" attribute to path parameters
+        if parameter["in"] == "path":
+            parameter["required"] = True
+
+    return [get_ref("parameter", p, openapi_major_version) for p in parameters]
 
 
 def clean_operations(operations, openapi_major_version):
     """Ensure that all parameters with "in" equal to "path" are also required
     as required by the OpenAPI specification, as well as normalizing any
-    references to global parameters.
+    references to global parameters. Also checks for invalid HTTP methods.
 
-    See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#parameterObject.
+    See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#parameterObject.
 
     :param dict operations: Dict mapping status codes to operations
     :param int openapi_major_version: The major version of the OpenAPI standard
         to use. Supported values are 2 and 3.
     """
-    def get_ref(param, openapi_major_version):
-        if isinstance(param, dict):
-            return param
-
-        ref_paths = {
-            2: 'parameters',
-            3: 'components/parameters',
-        }
-        ref_path = ref_paths[openapi_major_version]
-        return {'$ref': '#/{0}/{1}'.format(ref_path, param)}
+    invalid = {
+        key
+        for key in set(iterkeys(operations)) - set(VALID_METHODS[openapi_major_version])
+        if not key.startswith("x-")
+    }
+    if invalid:
+        raise APISpecError(
+            "One or more HTTP methods are invalid: {}".format(", ".join(invalid))
+        )
 
     for operation in (operations or {}).values():
-        if 'parameters' in operation:
-            parameters = operation.get('parameters')
-            for parameter in parameters:
-                if (
-                    isinstance(parameter, dict) and
-                    'in' in parameter and parameter['in'] == 'path'
-                ):
-                    parameter['required'] = True
-            operation['parameters'] = [
-                get_ref(p, openapi_major_version)
-                for p in parameters
-            ]
-
-
-class Path(object):
-    """Represents an OpenAPI Path object.
-
-    https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#pathsObject
-
-    :param str path: The path template, e.g. ``"/pet/{petId}"``
-    :param str method: The HTTP method.
-    :param dict operation: The operation object, as a `dict`. See
-        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#operationObject
-    :param str|OpenAPIVersion openapi_version: The OpenAPI version to use.
-        Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI standard.
-    """
-    def __init__(self, path=None, operations=None, openapi_version='2.0'):
-        self.path = path
-        operations = operations or OrderedDict()
-        openapi_version = OpenAPIVersion(openapi_version)
-        clean_operations(operations, openapi_version.major)
-        invalid = {key for key in
-                   set(iterkeys(operations)) - set(VALID_METHODS)
-                   if not key.startswith('x-')}
-        if invalid:
-            raise APISpecError(
-                'One or more HTTP methods are invalid: {0}'.format(', '.join(invalid)),
+        if "parameters" in operation:
+            operation["parameters"] = clean_parameters(
+                operation["parameters"], openapi_major_version
             )
-        self.operations = operations
+        if "responses" in operation:
+            responses = OrderedDict()
+            for code, response in iteritems(operation["responses"]):
+                try:
+                    code = int(code)  # handles IntEnums like http.HTTPStatus
+                except (TypeError, ValueError):
+                    if openapi_major_version < 3:
+                        warnings.warn("Non-integer code not allowed in OpenAPI < 3")
+
+                responses[str(code)] = get_ref(
+                    "response", response, openapi_major_version
+                )
+            operation["responses"] = responses
+
+
+class Components(object):
+    """Stores OpenAPI components
+
+    Components are top-level fields in OAS v2.
+    They became sub-fields of "components" top-level field in OAS v3.
+    """
+
+    def __init__(self, plugins, openapi_version):
+        self._plugins = plugins
+        self.openapi_version = openapi_version
+        self._schemas = {}
+        self._parameters = {}
+        self._responses = {}
+        self._security_schemes = {}
 
     def to_dict(self):
-        if not self.path:
-            raise APISpecError('Path template is not specified')
+        subsections = {
+            "schema": self._schemas,
+            "parameter": self._parameters,
+            "response": self._responses,
+            "security_scheme": self._security_schemes,
+        }
         return {
-            self.path: self.operations,
+            COMPONENT_SUBSECTIONS[self.openapi_version.major][k]: v
+            for k, v in iteritems(subsections)
+            if v != {}
         }
 
-    def update(self, path):
-        if path.path:
-            self.path = path.path
-        self.operations.update(path.operations)
+    def schema(self, name, component=None, **kwargs):
+        """Add a new schema to the spec.
+
+        :param str name: identifier by which schema may be referenced.
+        :param dict component: schema definition.
+
+        .. note::
+
+            If you are using `apispec.ext.marshmallow`, you can pass fields' metadata as
+            additional keyword arguments.
+
+            For example, to add ``enum`` and ``description`` to your field: ::
+
+                status = fields.String(
+                    required=True,
+                    enum=['open', 'closed'],
+                    description='Status (open or closed)',
+                )
+
+        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#schemaObject
+        """
+        if name in self._schemas:
+            raise DuplicateComponentNameError(
+                'Another schema with name "{}" is already registered.'.format(name)
+            )
+        component = component or {}
+        ret = component.copy()
+        # Execute all helpers from plugins
+        for plugin in self._plugins:
+            try:
+                ret.update(plugin.schema_helper(name, component, **kwargs) or {})
+            except PluginMethodNotImplementedError:
+                continue
+        self._schemas[name] = ret
+        return self
+
+    def parameter(self, component_id, location, component=None, **kwargs):
+        """ Add a parameter which can be referenced.
+
+        :param str param_id: identifier by which parameter may be referenced.
+        :param str location: location of the parameter.
+        :param dict component: parameter fields.
+        :param dict kwargs: plugin-specific arguments
+        """
+        if component_id in self._parameters:
+            raise DuplicateComponentNameError(
+                'Another parameter with name "{}" is already registered.'.format(
+                    component_id
+                )
+            )
+        component = component or {}
+        ret = component.copy()
+        ret.setdefault("name", component_id)
+        ret["in"] = location
+
+        # if "in" is set to "path", enforce required flag to True
+        if location == "path":
+            ret["required"] = True
+
+        # Execute all helpers from plugins
+        for plugin in self._plugins:
+            try:
+                ret.update(plugin.parameter_helper(component, **kwargs) or {})
+            except PluginMethodNotImplementedError:
+                continue
+        self._parameters[component_id] = ret
+        return self
+
+    def response(self, component_id, component=None, **kwargs):
+        """Add a response which can be referenced.
+
+        :param str component_id: ref_id to use as reference
+        :param dict component: response fields
+        :param dict kwargs: plugin-specific arguments
+        """
+        if component_id in self._responses:
+            raise DuplicateComponentNameError(
+                'Another response with name "{}" is already registered.'.format(
+                    component_id
+                )
+            )
+        component = component or {}
+        ret = component.copy()
+        # Execute all helpers from plugins
+        for plugin in self._plugins:
+            try:
+                ret.update(plugin.response_helper(component, **kwargs) or {})
+            except PluginMethodNotImplementedError:
+                continue
+        self._responses[component_id] = ret
+        return self
+
+    def security_scheme(self, component_id, component):
+        """Add a security scheme which can be referenced.
+
+        :param str component_id: component_id to use as reference
+        :param dict kwargs: security scheme fields
+        """
+        if component_id in self._security_schemes:
+            raise DuplicateComponentNameError(
+                'Another security scheme with name "{}" is already registered.'.format(
+                    component_id
+                )
+            )
+        self._security_schemes[component_id] = component
+        return self
 
 
 class APISpec(object):
@@ -104,362 +257,117 @@ class APISpec(object):
 
     :param str title: API title
     :param str version: API version
-    :param tuple plugins: Import paths to plugins.
-    :param dict info: Optional dict to add to `info`
-        See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#infoObject
-    :param callable schema_name_resolver: Callable to generate the schema definition name.
-        This parameter is deprecated. It is now a parameter of MarshmallowPlugin.
-    :param str|OpenAPIVersion openapi_version: The OpenAPI version to use.
+    :param list|tuple plugins: Plugin instances.
+        See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#infoObject
+    :param str|OpenAPIVersion openapi_version: OpenAPI Specification version.
         Should be in the form '2.x' or '3.x.x' to comply with the OpenAPI standard.
     :param dict options: Optional top-level keys
-        See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#swagger-object
+        See https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#openapi-object
     """
-    def __init__(
-        self, title, version, plugins=(), info=None,
-        schema_name_resolver=None, openapi_version='2.0', **options
-    ):
-        self.info = {
-            'title': title,
-            'version': version,
-        }
-        self.info.update(info or {})
 
+    def __init__(self, title, version, openapi_version, plugins=(), **options):
+        self.title = title
+        self.version = version
         self.openapi_version = OpenAPIVersion(openapi_version)
-
         self.options = options
-        if schema_name_resolver is not None:
-            warnings.warn(
-                'schema_name_resolver parameter is deprecated. '
-                'It is now a parameter of MarshmallowPlugin.',
-                DeprecationWarning,
-            )
-        self.schema_name_resolver = schema_name_resolver
+
         # Metadata
-        self._definitions = {}
-        self._parameters = {}
         self._tags = []
         self._paths = OrderedDict()
 
         # Plugins
-        plugins = list(plugins)  # Cast to list in case a generator is passed
-        # Backward compatibility: plugins can be passed as objects or strings
-        self.plugins = list(p for p in plugins if not isinstance(p, str))
+        self.plugins = plugins
         for plugin in self.plugins:
             plugin.init_spec(self)
 
-        # Deprecated interface
-        # Plugins and helpers
-        self.old_plugins = {}
-        self._definition_helpers = []
-        self._path_helpers = []
-        self._operation_helpers = []
-        # {'get': {200: [my_helper]}}
-        self._response_helpers = {}
-        old_plugins = list(p for p in plugins if isinstance(p, str))
-        for plugin_path in old_plugins:
-            self.setup_plugin(plugin_path)
+        # Components
+        self.components = Components(self.plugins, self.openapi_version)
 
     def to_dict(self):
         ret = {
-            'info': self.info,
-            'paths': self._paths,
-            'tags': self._tags,
+            "paths": self._paths,
+            "info": {"title": self.title, "version": self.version},
         }
-
-        if self.openapi_version.major == 2:
-            ret['swagger'] = self.openapi_version.vstring
-            ret['definitions'] = self._definitions
-            ret['parameters'] = self._parameters
-            ret.update(self.options)
-
-        elif self.openapi_version.major == 3:
-            ret['openapi'] = self.openapi_version.vstring
-            options = copy.deepcopy(self.options)
-            components = options.pop('components', {})
-
-            # deep update components object
-            definitions = components.pop('schemas', {})
-            definitions.update(self._definitions)
-            parameters = components.pop('parameters', {})
-            parameters.update(self._parameters)
-
-            ret['components'] = dict(
-                schemas=definitions,
-                parameters=parameters,
-                **components
-            )
-            ret.update(options)
-
+        if self._tags:
+            ret["tags"] = self._tags
+        if self.openapi_version.major < 3:
+            ret["swagger"] = self.openapi_version.vstring
+            ret.update(self.components.to_dict())
+        else:
+            ret["openapi"] = self.openapi_version.vstring
+            components_dict = self.components.to_dict()
+            if components_dict:
+                ret["components"] = components_dict
+        ret = deepupdate(ret, self.options)
         return ret
 
     def to_yaml(self):
-        return yaml.dump(self.to_dict(), Dumper=YAMLDumper)
+        """Render the spec to YAML. Requires PyYAML to be installed."""
+        from .yaml_utils import dict_to_yaml
 
-    def add_parameter(self, param_id, location, **kwargs):
-        """ Add a parameter which can be referenced.
+        return dict_to_yaml(self.to_dict())
 
-        :param str param_id: identifier by which parameter may be referenced.
-        :param str location: location of the parameter.
-        :param dict kwargs: parameter fields.
-        """
-        if 'name' not in kwargs:
-            kwargs['name'] = param_id
-        kwargs['in'] = location
-        self._parameters[param_id] = kwargs
-
-    def add_tag(self, tag):
+    def tag(self, tag):
         """ Store information about a tag.
 
         :param dict tag: the dictionary storing information about the tag.
         """
         self._tags.append(tag)
+        return self
 
-    def add_path(self, path=None, operations=None, **kwargs):
+    def path(
+        self,
+        path=None,
+        operations=None,
+        summary=None,
+        description=None,
+        parameters=None,
+        **kwargs
+    ):
         """Add a new path object to the spec.
 
-        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#pathsObject
+        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.2.md#path-item-object
 
-        :param str|Path|None path: URL Path component or Path instance
+        :param str|None path: URL path component
         :param dict|None operations: describes the http methods and options for `path`
+        :param str summary: short summary relevant to all operations in this path
+        :param str description: long description relevant to all operations in this path
+        :param list|None parameters: list of parameters relevant to all operations in this path
         :param dict kwargs: parameters used by any path helpers see :meth:`register_path_helper`
         """
-        def normalize_path(path):
-            if path and 'basePath' in self.options:
-                pattern = '^{0}'.format(re.escape(self.options['basePath']))
-                path = re.sub(pattern, '', path)
-            return path
-
-        if isinstance(path, Path):
-            path.path = normalize_path(path.path)
-            if operations:
-                path.operations.update(operations)
-        else:
-            path = Path(
-                path=normalize_path(path),
-                operations=operations,
-                openapi_version=self.openapi_version,
-            )
+        # operations and parameters must be deepcopied because they are mutated
+        # in clean_operations and operation helpers and path may be called twice
+        operations = deepcopy(operations) or OrderedDict()
+        parameters = deepcopy(parameters) or []
 
         # Execute path helpers
         for plugin in self.plugins:
             try:
-                ret = plugin.path_helper(path=path, operations=path.operations, **kwargs)
+                ret = plugin.path_helper(
+                    path=path, operations=operations, parameters=parameters, **kwargs
+                )
             except PluginMethodNotImplementedError:
                 continue
-            if isinstance(ret, Path):
-                ret.path = normalize_path(ret.path)
-                path.update(ret)
-        # Deprecated interface
-        for func in self._path_helpers:
-            try:
-                ret = func(
-                    self, path=path, operations=path.operations, **kwargs
-                )
-            except TypeError:
-                continue
-            if isinstance(ret, Path):
-                ret.path = normalize_path(ret.path)
-                path.update(ret)
-        if not path.path:
-            raise APISpecError('Path template is not specified')
+            if ret is not None:
+                path = ret
+        if not path:
+            raise APISpecError("Path template is not specified.")
 
         # Execute operation helpers
         for plugin in self.plugins:
             try:
-                plugin.operation_helper(path=path, operations=path.operations, **kwargs)
+                plugin.operation_helper(path=path, operations=operations, **kwargs)
             except PluginMethodNotImplementedError:
                 continue
-        # Deprecated interface
-        for func in self._operation_helpers:
-            func(self, path=path, operations=path.operations, **kwargs)
 
-        # Execute response helpers
-        # TODO: cache response helpers output for each (method, status_code) couple
-        for method, operation in iteritems(path.operations):
-            if method in VALID_METHODS and 'responses' in operation:
-                for status_code, response in iteritems(operation['responses']):
-                    for plugin in self.plugins:
-                        try:
-                            response.update(plugin.response_helper(method, status_code, **kwargs) or {})
-                        except PluginMethodNotImplementedError:
-                            continue
-        # Deprecated interface
-        # Rule is that method + http status exist in both operations and helpers
-        methods = set(iterkeys(path.operations)) & set(iterkeys(self._response_helpers))
-        for method in methods:
-            responses = path.operations[method]['responses']
-            statuses = set(iterkeys(responses)) & set(iterkeys(self._response_helpers[method]))
-            for status_code in statuses:
-                for func in self._response_helpers[method][status_code]:
-                    responses[status_code].update(
-                        func(self, **kwargs),
-                    )
+        clean_operations(operations, self.openapi_version.major)
 
-        self._paths.setdefault(path.path, path.operations).update(path.operations)
-
-    def definition(
-        self, name, properties=None, enum=None, description=None, extra_fields=None,
-        **kwargs
-    ):
-        """Add a new definition to the spec.
-
-        .. note::
-
-            If you are using `apispec.ext.marshmallow`, you can pass fields' metadata as
-            additional keyword arguments.
-
-            For example, to add ``enum`` to your field: ::
-
-                status = fields.String(required=True, enum=['open', 'closed'])
-
-        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-        """
-        ret = {}
-        # Execute all helpers from plugins
-        for plugin in self.plugins:
-            try:
-                ret.update(plugin.definition_helper(name, definition=ret, **kwargs))
-            except PluginMethodNotImplementedError:
-                continue
-        # Deprecated interface
-        for func in self._definition_helpers:
-            try:
-                ret.update(func(self, name, definition=ret, **kwargs))
-            except TypeError:
-                continue
-        if properties:
-            ret['properties'] = properties
-        if enum:
-            ret['enum'] = enum
-        if description:
-            ret['description'] = description
-        if extra_fields:
-            ret.update(extra_fields)
-        self._definitions[name] = ret
-
-    # Deprecated PLUGIN INTERFACE
-
-    # adapted from Sphinx
-    def setup_plugin(self, path):
-        """Import and setup a plugin. No-op if called twice
-        for the same plugin.
-
-        :param str path: Import path to the plugin.
-        :raise: PluginError if the given plugin is invalid.
-        """
-        warnings.warn(
-            'Old style plugins are deprecated. Use classes instead. '
-            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
-            DeprecationWarning,
-        )
-        if path in self.old_plugins:
-            return
-        try:
-            mod = __import__(
-                path, globals=None, locals=None, fromlist=('setup', ),
-            )
-        except ImportError as err:
-            raise PluginError(
-                'Could not import plugin "{0}"\n\n{1}'.format(path, err),
-            )
-        if not hasattr(mod, 'setup'):
-            raise PluginError('Plugin "{0}" has no setup(spec) function'.format(path))
-        else:
-            # Each plugin gets a dict to store arbitrary data
-            self.old_plugins[path] = {}
-            mod.setup(self)
-
-    # Deprecated helpers interface
-
-    def register_definition_helper(self, func):
-        """Register a new definition helper. The helper **must** meet the following conditions:
-
-        - Receive the `APISpec` instance as the first argument.
-        - Receive the definition `name` as the second argument.
-        - Include ``**kwargs`` in its signature.
-        - Return a `dict` representation of the definition's Schema object.
-
-        The helper may define any named arguments after the `name` argument.
-        ``kwargs`` will include (among other things):
-        - definition (dict): current state of the definition
-
-        https://github.com/OAI/OpenAPI-Specification/blob/master/versions/2.0.md#definitionsObject
-
-        :param callable func: The definition helper function.
-        """
-        warnings.warn(
-            'Helper functions are deprecated. Use plugin classes. '
-            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
-            DeprecationWarning,
-        )
-        self._definition_helpers.append(func)
-
-    def register_path_helper(self, func):
-        """Register a new path helper. The helper **must** meet the following conditions:
-
-        - Receive the `APISpec` instance as the first argument.
-        - Include ``**kwargs`` in signature.
-        - Return a `apispec.core.Path` object.
-
-        The helper may define any named arguments in its signature.
-        """
-        warnings.warn(
-            'Helper functions are deprecated. Use plugin classes. '
-            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
-            DeprecationWarning,
-        )
-        self._path_helpers.append(func)
-
-    def register_operation_helper(self, func):
-        """Register a new operation helper. The helper **must** meet the following conditions:
-
-        - Receive the `APISpec` instance as the first argument.
-        - Receive ``operations`` as a keyword argument.
-        - Include ``**kwargs`` in signature.
-
-        The helper may define any named arguments in its signature.
-        """
-        warnings.warn(
-            'Helper functions are deprecated. Use plugin classes. '
-            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
-            DeprecationWarning,
-        )
-        self._operation_helpers.append(func)
-
-    def register_response_helper(self, func, method, status_code):
-        """Register a new response helper. The helper **must** meet the following conditions:
-
-        - Receive the `APISpec` instance as the first argument.
-        - Include ``**kwargs`` in signature.
-        - Return a `dict` response object.
-
-        The helper may define any named arguments in its signature.
-        """
-        warnings.warn(
-            'Helper functions are deprecated. Use plugin classes. '
-            'See https://apispec.readthedocs.io/en/latest/writing_plugins.html.',
-            DeprecationWarning,
-        )
-        method = method.lower()
-        if method not in self._response_helpers:
-            self._response_helpers[method] = {}
-        self._response_helpers[method].setdefault(status_code, []).append(func)
-
-
-class YAMLDumper(yaml.Dumper):
-
-    @staticmethod
-    def _represent_dict(dumper, instance):
-        return dumper.represent_mapping('tag:yaml.org,2002:map', instance.items())
-
-    if PY2:
-        @staticmethod
-        def _represent_unicode(_, uni):
-            return yaml.ScalarNode(tag=u'tag:yaml.org,2002:str', value=uni)
-
-
-if PY2:
-    yaml.add_representer(unicode, YAMLDumper._represent_unicode, Dumper=YAMLDumper)
-yaml.add_representer(OrderedDict, YAMLDumper._represent_dict, Dumper=YAMLDumper)
-yaml.add_representer(LazyDict, YAMLDumper._represent_dict, Dumper=YAMLDumper)
-yaml.add_representer(Path, YAMLDumper._represent_dict, Dumper=YAMLDumper)
+        self._paths.setdefault(path, operations).update(operations)
+        if summary is not None:
+            self._paths[path]["summary"] = summary
+        if description is not None:
+            self._paths[path]["description"] = description
+        if parameters:
+            parameters = clean_parameters(parameters, self.openapi_version.major)
+            self._paths[path]["parameters"] = parameters
+        return self

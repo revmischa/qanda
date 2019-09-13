@@ -1,5 +1,4 @@
-#!/Users/cyber/.virtualenvs/qa/bin/python3
-
+#!/Users/cyber/.virtualenvs/qc-backend-qjdNaO4n/bin/python3.7
 # -*- coding: utf-8 -*-
 import re
 import sys

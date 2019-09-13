@@ -14,7 +14,7 @@ Resources:
     Properties:
       Timeout: 10
       Handler: qanda/function/slack_event.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
@@ -24,7 +24,7 @@ Resources:
     Properties:
       Timeout: 10
       Handler: qanda/function/slack_slashcommand.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]
@@ -34,7 +34,7 @@ Resources:
     Properties:
       Timeout: 10
       Handler: qanda/index.lambda_handler
-      Runtime: python3.6
+      Runtime: python3.7
       Role:
         Fn::ImportValue:
           !Join ['-', [!Ref 'ProjectId', !Ref 'AWS::Region', 'LambdaTrustRole']]

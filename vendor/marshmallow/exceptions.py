@@ -1,54 +1,52 @@
-# -*- coding: utf-8 -*-
 """Exception classes for marshmallow-related errors."""
 
-from marshmallow.compat import basestring
+
+# Key used for schema-level validation errors
+SCHEMA = "_schema"
+
 
 class MarshmallowError(Exception):
     """Base class for all marshmallow-related errors."""
-    pass
 
 
 class ValidationError(MarshmallowError):
-    """Raised when validation fails on a field. Validators and custom fields should
-    raise this exception.
+    """Raised when validation fails on a field or schema.
 
-    :param message: An error message, list of error messages, or dict of
-        error messages.
-    :param list field_names: Field names to store the error on.
-        If `None`, the error is stored in its default location.
-    :param list fields: `Field` objects to which the error applies.
+    Validators and custom fields should raise this exception.
+
+    :param str|list|dict message: An error message, list of error messages, or dict of
+        error messages. If a dict, the keys are subitems and the values are error messages.
+    :param str field_name: Field name to store the error on.
+        If `None`, the error is stored as schema-level error.
+    :param dict data: Raw input data.
+    :param dict valid_data: Valid (de)serialized data.
     """
 
-    def __init__(self, message, field_names=None, fields=None, data=None, **kwargs):
-        if not isinstance(message, dict) and not isinstance(message, list):
-            messages = [message]
-        else:
-            messages = message
-        #: String, list, or dictionary of error messages.
-        #: If a `dict`, the keys will be field names and the values will be lists of
-        #: messages.
-        self.messages = messages
-        #: List of field objects which failed validation.
-        self.fields = fields
-        if isinstance(field_names, basestring):
-            #: List of field_names which failed validation.
-            self.field_names = [field_names]
-        else:  # fields is a list or None
-            self.field_names = field_names or []
-        # Store nested data
+    def __init__(
+        self, message, field_name=SCHEMA, data=None, valid_data=None, **kwargs
+    ):
+        self.messages = [message] if isinstance(message, (str, bytes)) else message
+        self.field_name = field_name
         self.data = data
+        self.valid_data = valid_data
         self.kwargs = kwargs
-        MarshmallowError.__init__(self, message)
+        super().__init__(message)
 
-    def normalized_messages(self, no_field_name="_schema"):
-        if isinstance(self.messages, dict):
+    def normalized_messages(self):
+        if self.field_name == SCHEMA and isinstance(self.messages, dict):
             return self.messages
-        if len(self.field_names) == 0:
-            return {no_field_name: self.messages}
-        return dict((name, self.messages) for name in self.field_names)
+        return {self.field_name: self.messages}
+
 
 class RegistryError(NameError):
     """Raised when an invalid operation is performed on the serializer
     class registry.
     """
-    pass
+
+
+class StringNotCollectionError(MarshmallowError, TypeError):
+    """Raised when a string is passed when a list of strings is expected."""
+
+
+class FieldInstanceResolutionError(MarshmallowError, TypeError):
+    """Raised when schema to instantiate is neither a Schema class nor an instance."""
