@@ -241,7 +241,7 @@ class SlackApp:
                 user_id=user_id,
                 team_id=self.team_id,
             )
-            reply(attachments=self.get_question_actions(notified, qid))
+            reply(blocks=self.get_question_actions(notified, qid))
 
         elif bodylc.startswith("reply "):
             # submit answer
